@@ -1,55 +1,1367 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Poker Accounting App</title>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Add the rich brown/green color scheme we discussed -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@300;400;500&display=swap">
   <style>
-    body {
-      font-family: 'Georgia', serif;
-      background-color: #3D251E;
-      color: #F5F5DC;
-      margin: 0;
-      padding: 20px;
+    :root {
+      --mahogany: #582C14;
+      --felt-green: #01513A;
+      --tobacco: #8B4513;
+      --gold: #D4AF37;
+      --parchment: #F5F5DC;
+      --dark-wood: #3D251E;
+      --sienna: #A0522D;
+      --tan: #D2B48C;
+      --copper: #B87333;
+      --espresso: #2E1503;
+      --deep-green: #006B54;
+      --sand: #F2CA80;
     }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: var(--dark-wood);
+      color: var(--parchment);
+      line-height: 1.6;
+      padding: 0;
+      margin: 0;
+    }
+
     .app-container {
       max-width: 800px;
       margin: 0 auto;
-      border: 5px solid #8B4513;
-      border-radius: 12px;
-      background-image: linear-gradient(to bottom, #582C14, #3D251E);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-image: linear-gradient(to bottom, var(--mahogany), var(--dark-wood));
     }
-    /* Add more styles from our design discussion */
+
+    header {
+      background-color: var(--espresso);
+      color: var(--gold);
+      padding: 1.5rem;
+      text-align: center;
+      border-bottom: 3px solid var(--tobacco);
+    }
+
+    h1, h2, h3 {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+    }
+
+    .logo {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      color: var(--gold);
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .subtitle {
+      font-size: 1rem;
+      opacity: 0.8;
+    }
+
+    .tabs {
+      display: flex;
+      background-color: var(--felt-green);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 1rem 0.5rem;
+      min-width: 100px;
+      cursor: pointer;
+      color: var(--parchment);
+      font-weight: 500;
+      transition: all 0.3s ease;
+      border-bottom: 3px solid transparent;
+    }
+
+    .tab.active {
+      background-color: var(--deep-green);
+      border-bottom: 3px solid var(--gold);
+      color: var(--gold);
+    }
+
+    .tab-content {
+      display: none;
+      padding: 1.5rem;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .panel {
+      background-color: rgba(0, 0, 0, 0.15);
+      border: 1px solid var(--tobacco);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--tobacco);
+      padding-bottom: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .panel-title {
+      color: var(--gold);
+      font-size: 1.2rem;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: var(--parchment);
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--tobacco);
+      border-radius: 4px;
+      background-color: rgba(245, 245, 220, 0.1);
+      color: var(--parchment);
+      font-size: 1rem;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--gold);
+    }
+
+    .form-row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .form-row .form-group {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .button-primary {
+      background-color: var(--tobacco);
+      color: var(--parchment);
+      border: none;
+      border-radius: 4px;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      width: 100%;
+    }
+
+    .button-primary:hover {
+      background-color: var(--sienna);
+    }
+
+    .button-secondary {
+      background-color: var(--felt-green);
+      color: var(--parchment);
+      border: none;
+      border-radius: 4px;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .button-secondary:hover {
+      background-color: var(--deep-green);
+    }
+
+    .button-small {
+      padding: 0.4rem 0.75rem;
+      font-size: 0.85rem;
+    }
+
+    .player-list {
+      margin-top: 1.5rem;
+    }
+
+    .player-card {
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(139, 69, 19, 0.5);
+      border-radius: 6px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      transition: transform 0.2s;
+    }
+
+    .player-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .player-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .player-name {
+      font-weight: 500;
+      font-size: 1.1rem;
+      color: var(--parchment);
+    }
+
+    .player-balance {
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .positive {
+      color: #90EE90;
+    }
+
+    .negative {
+      color: #FF7F7F;
+    }
+
+    .player-details {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      margin-bottom: 0.75rem;
+      color: rgba(245, 245, 220, 0.8);
+    }
+
+    .player-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .summary-card {
+      background-color: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--tobacco);
+      border-radius: 6px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+    }
+
+    .summary-total {
+      border-top: 1px solid var(--tobacco);
+      padding-top: 0.5rem;
+      margin-top: 0.5rem;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .expense-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.75rem;
+      border-bottom: 1px solid rgba(139, 69, 19, 0.3);
+    }
+
+    .expense-item:last-child {
+      border-bottom: none;
+    }
+
+    .expense-details {
+      flex: 1;
+    }
+
+    .expense-title {
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+
+    .expense-meta {
+      font-size: 0.85rem;
+      color: rgba(245, 245, 220, 0.7);
+    }
+
+    .expense-amount {
+      font-weight: 700;
+      padding-left: 1rem;
+    }
+
+    .transaction-list {
+      margin-top: 1rem;
+    }
+
+    .transaction-item {
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(139, 69, 19, 0.3);
+      border-radius: 6px;
+      padding: 0.75rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .transaction-parties {
+      font-weight: 500;
+    }
+
+    .transaction-amount {
+      font-weight: 700;
+      color: var(--gold);
+    }
+
+    .icon-button {
+      background: none;
+      border: none;
+      color: var(--parchment);
+      cursor: pointer;
+      padding: 0.25rem;
+    }
+
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .checkbox-item input[type="checkbox"] {
+      width: auto;
+    }
+
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal {
+      background-color: var(--mahogany);
+      border: 2px solid var(--tobacco);
+      border-radius: 8px;
+      padding: 1.5rem;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      border-bottom: 1px solid var(--tobacco);
+      padding-bottom: 0.75rem;
+    }
+
+    .modal-title {
+      font-size: 1.25rem;
+      color: var(--gold);
+    }
+
+    .close-modal {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: var(--parchment);
+      cursor: pointer;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--tobacco);
+    }
+
+    .info-box {
+      background-color: rgba(0, 81, 58, 0.2);
+      border: 1px solid var(--felt-green);
+      border-radius: 6px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .levy-details {
+      font-size: 0.9rem;
+      margin: 0.5rem 0;
+    }
+
+    footer {
+      background-color: var(--espresso);
+      color: rgba(245, 245, 220, 0.7);
+      padding: 1rem;
+      text-align: center;
+      font-size: 0.85rem;
+      margin-top: auto;
+    }
+
+    @media (max-width: 600px) {
+      .form-row {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .form-row .form-group {
+        min-width: 100%;
+      }
+
+      .player-actions {
+        flex-wrap: wrap;
+      }
+
+      .panel {
+        padding: 1rem;
+      }
+    }
+
+    /* Loading spinner */
+    .spinner {
+      display: inline-block;
+      width: 1.5rem;
+      height: 1.5rem;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--gold);
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Notification */
+    .notification {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 4px;
+      background-color: var(--felt-green);
+      color: var(--parchment);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 1001;
+      max-width: 300px;
+      transition: all 0.3s ease;
+      transform: translateY(-10px);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .notification.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .notification.success {
+      background-color: var(--deep-green);
+    }
+
+    .notification.error {
+      background-color: #8B0000;
+    }
   </style>
 </head>
 <body>
   <div class="app-container">
-    <h1>Poker Accounting App</h1>
-    <p>Your app is now live and automatically deploying!</p>
-    <!-- Add your app components here -->
+    <header>
+      <h1 class="logo">🂡 POKER MANAGER 🂪</h1>
+      <p class="subtitle">Track buy-ins, levy, and settlements</p>
+    </header>
+
+    <div class="tabs">
+      <div class="tab" data-tab="players">PLAYERS</div>
+      <div class="tab" data-tab="levy">LEVY</div>
+      <div class="tab" data-tab="expenses">EXPENSES</div>
+      <div class="tab" data-tab="settle">SETTLE</div>
+    </div>
+
+    <!-- Players Tab -->
+    <div id="players-tab" class="tab-content active">
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Player Management</h2>
+        </div>
+        <button id="add-player-btn" class="button-primary">+ Add Player</button>
+
+        <div class="player-list" id="player-list">
+          <!-- Player cards will be dynamically generated here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Levy Tab -->
+    <div id="levy-tab" class="tab-content">
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Levy Calculator</h2>
+        </div>
+        
+        <div class="info-box">
+          <p>A 5% levy is charged on winnings above $1,000, rounded up to the nearest $10.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="winnings-input">Winning Amount ($)</label>
+          <input type="number" id="winnings-input" placeholder="Enter winnings amount">
+        </div>
+        
+        <button id="calculate-levy-btn" class="button-primary">Calculate Levy</button>
+        
+        <div class="summary-card" id="levy-result" style="display: none;">
+          <div class="summary-row">
+            <span>Total Winnings:</span>
+            <span id="total-winnings">$0</span>
+          </div>
+          <div class="summary-row">
+            <span>Taxable Amount (over $1,000):</span>
+            <span id="taxable-amount">$0</span>
+          </div>
+          <div class="summary-row">
+            <span>Levy Rate:</span>
+            <span>5%</span>
+          </div>
+          <div class="summary-total">
+            <span>Levy Due:</span>
+            <span id="levy-due">$0</span>
+          </div>
+          
+          <div class="levy-details" id="levy-calculation"></div>
+          
+          <div class="form-group" style="margin-top: 1rem;">
+            <label>Apply Levy To:</label>
+            <div class="checkbox-group" id="levy-players">
+              <!-- Player checkboxes will be dynamically generated here -->
+            </div>
+          </div>
+          
+          <button id="apply-levy-btn" class="button-primary" style="margin-top: 1rem;">Apply Levy</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expenses Tab -->
+    <div id="expenses-tab" class="tab-content">
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Shared Expenses</h2>
+        </div>
+        
+        <div class="form-group">
+          <label for="expense-description">Description</label>
+          <input type="text" id="expense-description" placeholder="e.g., Food, Drinks, Tips">
+        </div>
+        
+        <div class="form-group">
+          <label for="expense-amount">Amount ($)</label>
+          <input type="number" id="expense-amount" placeholder="Enter amount">
+        </div>
+        
+        <div class="form-group">
+          <label>Split Between:</label>
+          <div class="checkbox-group" id="expense-players">
+            <!-- Player checkboxes will be dynamically generated here -->
+          </div>
+        </div>
+        
+        <button id="add-expense-btn" class="button-primary">Add Expense</button>
+        
+        <div class="summary-card">
+          <h3 style="margin-bottom: 0.75rem; color: var(--gold);">Expense List</h3>
+          <div id="expense-list">
+            <!-- Expense items will be dynamically generated here -->
+            <div class="empty-state" id="no-expenses-message">No expenses added yet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settlement Tab -->
+    <div id="settle-tab" class="tab-content">
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Final Settlement</h2>
+        </div>
+        
+        <div class="info-box">
+          <p>Enter final chip counts to calculate settlements between players.</p>
+        </div>
+        
+        <div id="final-counts-form">
+          <!-- Final count inputs will be dynamically generated here -->
+        </div>
+        
+        <button id="calculate-settlement-btn" class="button-primary">Calculate Settlement</button>
+        
+        <div class="summary-card" id="settlement-result" style="display: none;">
+          <h3 style="margin-bottom: 0.75rem; color: var(--gold);">Balance Summary</h3>
+          <div id="balance-summary">
+            <!-- Balance summary will be dynamically generated here -->
+          </div>
+          
+          <h3 style="margin: 1rem 0 0.75rem; color: var(--gold);">Optimized Transactions</h3>
+          <div id="transaction-list" class="transaction-list">
+            <!-- Transactions will be dynamically generated here -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      Poker Accounting App © 2026 | v1.0.0
+    </footer>
+  </div>
+
+  <!-- Modal Templates -->
+  <div class="modal-backdrop" id="add-player-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Add New Player</h3>
+        <button class="close-modal">&times;</button>
+      </div>
+      <div class="form-group">
+        <label for="new-player-name">Player Name</label>
+        <input type="text" id="new-player-name" placeholder="Enter player name">
+      </div>
+      <div class="form-group">
+        <label for="new-player-buyin">Initial Buy-in ($)</label>
+        <input type="number" id="new-player-buyin" value="1000">
+      </div>
+      <div class="modal-footer">
+        <button class="button-secondary close-modal">Cancel</button>
+        <button class="button-primary" id="confirm-add-player">Add Player</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="adjust-chips-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Adjust Chips</h3>
+        <button class="close-modal">&times;</button>
+      </div>
+      <div class="form-group">
+        <label for="adjustment-type">Adjustment Type</label>
+        <select id="adjustment-type">
+          <option value="buyin">Buy In</option>
+          <option value="cashout">Cash Out</option>
+          <option value="adjust">Adjust Balance</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="adjustment-amount">Amount ($)</label>
+        <input type="number" id="adjustment-amount" value="1000">
+      </div>
+      <div class="modal-footer">
+        <button class="button-secondary close-modal">Cancel</button>
+        <button class="button-primary" id="confirm-adjustment">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="notification" id="notification">
+    Operation completed successfully!
   </div>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
   <script>
-    // Your Firebase configuration (copy from Firebase Console)
+    // Your Firebase configuration
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
+      apiKey: "YOUR_FIREBASE_API_KEY",
       authDomain: "pokeraccountingapp.firebaseapp.com",
       projectId: "pokeraccountingapp",
       storageBucket: "pokeraccountingapp.appspot.com",
       messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
       appId: "YOUR_APP_ID"
     };
-    
+
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     
-    // Your app code will go here
+    // App State
+    let state = {
+      players: [],
+      expenses: [],
+      activePlayer: null,
+      activeTab: 'players'
+    };
+
+    // DOM Elements
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    const playerList = document.getElementById('player-list');
+    const addPlayerBtn = document.getElementById('add-player-btn');
+    const addPlayerModal = document.getElementById('add-player-modal');
+    const newPlayerName = document.getElementById('new-player-name');
+    const newPlayerBuyin = document.getElementById('new-player-buyin');
+    const confirmAddPlayerBtn = document.getElementById('confirm-add-player');
+    const adjustChipsModal = document.getElementById('adjust-chips-modal');
+    const adjustmentType = document.getElementById('adjustment-type');
+    const adjustmentAmount = document.getElementById('adjustment-amount');
+    const confirmAdjustmentBtn = document.getElementById('confirm-adjustment');
+    const winningsInput = document.getElementById('winnings-input');
+    const calculateLevyBtn = document.getElementById('calculate-levy-btn');
+    const levyResult = document.getElementById('levy-result');
+    const totalWinnings = document.getElementById('total-winnings');
+    const taxableAmount = document.getElementById('taxable-amount');
+    const levyDue = document.getElementById('levy-due');
+    const levyCalculation = document.getElementById('levy-calculation');
+    const levyPlayers = document.getElementById('levy-players');
+    const applyLevyBtn = document.getElementById('apply-levy-btn');
+    const expenseDescription = document.getElementById('expense-description');
+    const expenseAmount = document.getElementById('expense-amount');
+    const expensePlayers = document.getElementById('expense-players');
+    const addExpenseBtn = document.getElementById('add-expense-btn');
+    const expenseList = document.getElementById('expense-list');
+    const noExpensesMessage = document.getElementById('no-expenses-message');
+    const finalCountsForm = document.getElementById('final-counts-form');
+    const calculateSettlementBtn = document.getElementById('calculate-settlement-btn');
+    const settlementResult = document.getElementById('settlement-result');
+    const balanceSummary = document.getElementById('balance-summary');
+    const transactionList = document.getElementById('transaction-list');
+    const notification = document.getElementById('notification');
+    const closeModals = document.querySelectorAll('.close-modal');
+
+    // Tab Navigation
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabId = tab.getAttribute('data-tab');
+        state.activeTab = tabId;
+        
+        // Update active tab
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        
+        // Update active content
+        tabContents.forEach(content => {
+          content.classList.remove('active');
+          if (content.id === `${tabId}-tab`) {
+            content.classList.add('active');
+          }
+        });
+        
+        // Refresh tab content
+        if (tabId === 'players') {
+          renderPlayers();
+        } else if (tabId === 'levy') {
+          renderLevyPlayers();
+        } else if (tabId === 'expenses') {
+          renderExpensePlayers();
+          renderExpenses();
+        } else if (tabId === 'settle') {
+          renderFinalCountForm();
+        }
+      });
+    });
+
+    // Modal Controls
+    closeModals.forEach(button => {
+      button.addEventListener('click', () => {
+        addPlayerModal.style.display = 'none';
+        adjustChipsModal.style.display = 'none';
+      });
+    });
+
+    // Add Player
+    addPlayerBtn.addEventListener('click', () => {
+      newPlayerName.value = '';
+      newPlayerBuyin.value = '1000';
+      addPlayerModal.style.display = 'flex';
+      newPlayerName.focus();
+    });
+
+    confirmAddPlayerBtn.addEventListener('click', async () => {
+      const name = newPlayerName.value.trim();
+      const buyin = parseFloat(newPlayerBuyin.value) || 0;
+      
+      if (!name) {
+        showNotification('Please enter a player name', 'error');
+        return;
+      }
+      
+      if (buyin <= 0) {
+        showNotification('Buy-in amount must be greater than zero', 'error');
+        return;
+      }
+      
+      const newPlayer = {
+        name: name,
+        buyins: buyin,
+        currentChips: buyin,
+        created: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      
+      try {
+        await db.collection('players').add(newPlayer);
+        addPlayerModal.style.display = 'none';
+        showNotification(`Added ${name} with $${buyin} buy-in`, 'success');
+        loadPlayers();
+      } catch (error) {
+        console.error("Error adding player:", error);
+        showNotification('Error adding player. Please try again.', 'error');
+      }
+    });
+
+    // Adjust Chips
+    function openAdjustChipsModal(playerId) {
+      state.activePlayer = playerId;
+      adjustmentType.value = 'buyin';
+      adjustmentAmount.value = '1000';
+      adjustChipsModal.style.display = 'flex';
+      adjustmentAmount.focus();
+    }
+
+    confirmAdjustmentBtn.addEventListener('click', async () => {
+      const playerId = state.activePlayer;
+      const type = adjustmentType.value;
+      const amount = parseFloat(adjustmentAmount.value) || 0;
+      
+      if (!playerId || amount <= 0) {
+        showNotification('Invalid adjustment', 'error');
+        return;
+      }
+      
+      const player = state.players.find(p => p.id === playerId);
+      if (!player) return;
+      
+      let updatedChips = player.currentChips;
+      let updatedBuyins = player.buyins;
+      
+      if (type === 'buyin') {
+        updatedChips += amount;
+        updatedBuyins += amount;
+      } else if (type === 'cashout') {
+        updatedChips -= amount;
+      } else if (type === 'adjust') {
+        updatedChips = amount;
+      }
+      
+      try {
+        await db.collection('players').doc(playerId).update({
+          currentChips: updatedChips,
+          buyins: updatedBuyins
+        });
+        
+        adjustChipsModal.style.display = 'none';
+        showNotification(`Updated ${player.name}'s chips successfully`, 'success');
+        loadPlayers();
+      } catch (error) {
+        console.error("Error adjusting chips:", error);
+        showNotification('Error updating chips. Please try again.', 'error');
+      }
+    });
+
+    // Levy Calculator
+    calculateLevyBtn.addEventListener('click', () => {
+      const winnings = parseFloat(winningsInput.value) || 0;
+      
+      // Calculate levy
+      let levyAmount = 0;
+      let calculationText = '';
+      
+      if (winnings > 1000) {
+        const taxableWinnings = winnings - 1000;
+        levyAmount = Math.ceil((taxableWinnings * 0.05) / 10) * 10; // 5% rounded up to nearest $10
+        
+        calculationText = `
+          <p>Calculation: 5% of $(${winnings} - $1,000) = $${(taxableWinnings * 0.05).toFixed(2)}</p>
+          <p>Rounded up to nearest $10: $${levyAmount}</p>
+        `;
+      } else {
+        calculationText = '<p>No levy is applied on winnings of $1,000 or less.</p>';
+      }
+      
+      // Update UI
+      totalWinnings.textContent = `$${winnings.toFixed(2)}`;
+      taxableAmount.textContent = winnings > 1000 ? `$${(winnings - 1000).toFixed(2)}` : '$0.00';
+      levyDue.textContent = `$${levyAmount.toFixed(2)}`;
+      levyCalculation.innerHTML = calculationText;
+      renderLevyPlayers();
+      levyResult.style.display = 'block';
+    });
+
+    applyLevyBtn.addEventListener('click', async () => {
+      const levyAmount = parseFloat(levyDue.textContent.replace('$', '')) || 0;
+      
+      if (levyAmount <= 0) {
+        showNotification('No levy to apply', 'error');
+        return;
+      }
+      
+      // Get selected players
+      const selectedPlayers = [];
+      document.querySelectorAll('#levy-players input:checked').forEach(checkbox => {
+        selectedPlayers.push(checkbox.value);
+      });
+      
+      if (selectedPlayers.length === 0) {
+        showNotification('Select at least one player to apply the levy', 'error');
+        return;
+      }
+      
+      // Calculate levy per player
+      const levyPerPlayer = levyAmount / selectedPlayers.length;
+      
+      // Update each selected player
+      try {
+        for (const playerId of selectedPlayers) {
+          const player = state.players.find(p => p.id === playerId);
+          if (player) {
+            await db.collection('players').doc(playerId).update({
+              currentChips: player.currentChips - levyPerPlayer
+            });
+          }
+        }
+        
+        // Record levy expense
+        await db.collection('expenses').add({
+          description: `Levy (${new Date().toLocaleDateString()})`,
+          amount: levyAmount,
+          splitBetween: selectedPlayers,
+          created: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        showNotification(`Applied $${levyAmount} levy to ${selectedPlayers.length} players`, 'success');
+        loadPlayers();
+        loadExpenses();
+        
+        // Reset levy calculator
+        winningsInput.value = '';
+        levyResult.style.display = 'none';
+      } catch (error) {
+        console.error("Error applying levy:", error);
+        showNotification('Error applying levy. Please try again.', 'error');
+      }
+    });
+
+    // Expense Management
+    addExpenseBtn.addEventListener('click', async () => {
+      const description = expenseDescription.value.trim();
+      const amount = parseFloat(expenseAmount.value) || 0;
+      
+      if (!description) {
+        showNotification('Please enter an expense description', 'error');
+        return;
+      }
+      
+      if (amount <= 0) {
+        showNotification('Expense amount must be greater than zero', 'error');
+        return;
+      }
+      
+      // Get selected players
+      const selectedPlayers = [];
+      document.querySelectorAll('#expense-players input:checked').forEach(checkbox => {
+        selectedPlayers.push(checkbox.value);
+      });
+      
+      if (selectedPlayers.length === 0) {
+        showNotification('Select at least one player to share the expense', 'error');
+        return;
+      }
+      
+      // Calculate expense per player
+      const expensePerPlayer = amount / selectedPlayers.length;
+      
+      try {
+        // Add expense record
+        await db.collection('expenses').add({
+          description: description,
+          amount: amount,
+          splitBetween: selectedPlayers,
+          created: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // Update each player's chips
+        for (const playerId of selectedPlayers) {
+          const player = state.players.find(p => p.id === playerId);
+          if (player) {
+            await db.collection('players').doc(playerId).update({
+              currentChips: player.currentChips - expensePerPlayer
+            });
+          }
+        }
+        
+        expenseDescription.value = '';
+        expenseAmount.value = '';
+        
+        showNotification(`Added expense: ${description} for $${amount}`, 'success');
+        loadPlayers();
+        loadExpenses();
+      } catch (error) {
+        console.error("Error adding expense:", error);
+        showNotification('Error adding expense. Please try again.', 'error');
+      }
+    });
+
+    // Settlement Calculations
+    calculateSettlementBtn.addEventListener('click', () => {
+      const finalCounts = [];
+      
+      // Get final chip counts from form
+      state.players.forEach(player => {
+        const inputElem = document.getElementById(`final-count-${player.id}`);
+        if (inputElem) {
+          const finalChips = parseFloat(inputElem.value) || player.currentChips;
+          finalCounts.push({
+            id: player.id,
+            name: player.name,
+            buyins: player.buyins,
+            finalChips: finalChips,
+            balance: finalChips - player.buyins
+          });
+        }
+      });
+      
+      // Calculate net balances
+      renderBalanceSummary(finalCounts);
+      
+      // Calculate optimized transactions
+      const transactions = calculateOptimizedTransactions(finalCounts);
+      renderTransactions(transactions);
+      
+      settlementResult.style.display = 'block';
+    });
+
+    // Helper Functions
+    function calculateOptimizedTransactions(balances) {
+      // Sort by balance (negative to positive)
+      const sortedPlayers = [...balances].sort((a, b) => a.balance - b.balance);
+      
+      const transactions = [];
+      let debtors = sortedPlayers.filter(p => p.balance < 0);
+      let creditors = sortedPlayers.filter(p => p.balance > 0);
+      
+      // Match debtors with creditors
+      while (debtors.length > 0 && creditors.length > 0) {
+        const debtor = debtors[0];
+        const creditor = creditors[0];
+        
+        // Amount to transfer (minimum of debt or credit)
+        const amount = Math.min(Math.abs(debtor.balance), creditor.balance);
+        
+        if (amount > 0) {
+          transactions.push({
+            from: debtor,
+            to: creditor,
+            amount: amount
+          });
+          
+          // Update balances
+          debtor.balance += amount;
+          creditor.balance -= amount;
+        }
+        
+        // Remove players with zeroed balances
+        if (Math.abs(debtor.balance) < 0.01) debtors.shift();
+        if (Math.abs(creditor.balance) < 0.01) creditors.shift();
+      }
+      
+      return transactions;
+    }
+
+    function renderBalanceSummary(finalCounts) {
+      let html = '';
+      
+      finalCounts.forEach(player => {
+        const balanceClass = player.balance > 0 ? 'positive' : player.balance < 0 ? 'negative' : '';
+        html += `
+          <div class="summary-row">
+            <span>${player.name}</span>
+            <span class="${balanceClass}">
+              ${player.balance > 0 ? '+' : ''}$${player.balance.toFixed(2)}
+            </span>
+          </div>
+        `;
+      });
+      
+      balanceSummary.innerHTML = html;
+    }
+
+    function renderTransactions(transactions) {
+      if (transactions.length === 0) {
+        transactionList.innerHTML = '<p>No transactions needed</p>';
+        return;
+      }
+      
+      let html = '';
+      
+      transactions.forEach(transaction => {
+        html += `
+          <div class="transaction-item">
+            <div class="transaction-parties">
+              <strong>${transaction.from.name}</strong> pays <strong>${transaction.to.name}</strong>
+            </div>
+            <div class="transaction-amount">
+              $${transaction.amount.toFixed(2)}
+            </div>
+          </div>
+        `;
+      });
+      
+      transactionList.innerHTML = html;
+    }
+
+    function renderPlayers() {
+      if (state.players.length === 0) {
+        playerList.innerHTML = '<p>No players added yet</p>';
+        return;
+      }
+      
+      let html = '';
+      
+      state.players.forEach(player => {
+        const balance = player.currentChips - player.buyins;
+        const balanceClass = balance > 0 ? 'positive' : balance < 0 ? 'negative' : '';
+        
+        html += `
+          <div class="player-card">
+            <div class="player-header">
+              <span class="player-name">${player.name}</span>
+              <span class="player-balance ${balanceClass}">
+                ${balance > 0 ? '+' : ''}$${balance.toFixed(2)}
+              </span>
+            </div>
+            <div class="player-details">
+              <span>Buy-ins: $${player.buyins.toFixed(2)}</span>
+              <span>Current: $${player.currentChips.toFixed(2)}</span>
+            </div>
+            <div class="player-actions">
+              <button class="button-secondary button-small" onclick="openAdjustChipsModal('${player.id}')">Adjust Chips</button>
+              <button class="button-secondary button-small" onclick="quickBuyin('${player.id}')">+$1K</button>
+              <button class="button-secondary button-small" onclick="deletePlayer('${player.id}')">Remove</button>
+            </div>
+          </div>
+        `;
+      });
+      
+      playerList.innerHTML = html;
+    }
+
+    function renderLevyPlayers() {
+      let html = '';
+      
+      state.players.forEach(player => {
+        html += `
+          <div class="checkbox-item">
+            <input type="checkbox" id="levy-player-${player.id}" value="${player.id}">
+            <label for="levy-player-${player.id}">${player.name}</label>
+          </div>
+        `;
+      });
+      
+      levyPlayers.innerHTML = html || '<p>No players available</p>';
+    }
+
+    function renderExpensePlayers() {
+      let html = '';
+      
+      state.players.forEach(player => {
+        html += `
+          <div class="checkbox-item">
+            <input type="checkbox" id="expense-player-${player.id}" value="${player.id}">
+            <label for="expense-player-${player.id}">${player.name}</label>
+          </div>
+        `;
+      });
+      
+      expensePlayers.innerHTML = html || '<p>No players available</p>';
+    }
+
+    function renderExpenses() {
+      if (state.expenses.length === 0) {
+        noExpensesMessage.style.display = 'block';
+        expenseList.innerHTML = '';
+        return;
+      }
+      
+      noExpensesMessage.style.display = 'none';
+      let html = '';
+      
+      state.expenses.forEach(expense => {
+        const date = expense.created ? new Date(expense.created.toDate()) : new Date();
+        const formattedDate = date.toLocaleDateString();
+        
+        html += `
+          <div class="expense-item">
+            <div class="expense-details">
+              <div class="expense-title">${expense.description}</div>
+              <div class="expense-meta">
+                ${formattedDate} • Split between ${expense.splitBetween.length} players
+              </div>
+            </div>
+            <div class="expense-amount">$${expense.amount.toFixed(2)}</div>
+          </div>
+        `;
+      });
+      
+      expenseList.innerHTML = html;
+    }
+
+    function renderFinalCountForm() {
+      let html = '';
+      
+      state.players.forEach(player => {
+        html += `
+          <div class="form-group">
+            <label for="final-count-${player.id}">${player.name}'s Final Chips</label>
+            <input type="number" id="final-count-${player.id}" value="${player.currentChips}">
+          </div>
+        `;
+      });
+      
+      finalCountsForm.innerHTML = html;
+    }
+
+    function showNotification(message, type = 'success') {
+      notification.textContent = message;
+      notification.className = `notification ${type}`;
+      notification.classList.add('show');
+      
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 3000);
+    }
+
+    // Global functions (referenced in HTML)
+    window.openAdjustChipsModal = openAdjustChipsModal;
+    
+    window.quickBuyin = async function(playerId) {
+      const player = state.players.find(p => p.id === playerId);
+      if (!player) return;
+      
+      try {
+        await db.collection('players').doc(playerId).update({
+          buyins: player.buyins + 1000,
+          currentChips: player.currentChips + 1000
+        });
+        
+        showNotification(`Added $1,000 buy-in for ${player.name}`, 'success');
+        loadPlayers();
+      } catch (error) {
+        console.error("Error adding buy-in:", error);
+        showNotification('Error adding buy-in. Please try again.', 'error');
+      }
+    };
+    
+    window.deletePlayer = async function(playerId) {
+      if (!confirm("Are you sure you want to remove this player? This action cannot be undone.")) {
+        return;
+      }
+      
+      const player = state.players.find(p => p.id === playerId);
+      if (!player) return;
+      
+      try {
+        await db.collection('players').doc(playerId).delete();
+        showNotification(`Removed ${player.name} from the game`, 'success');
+        loadPlayers();
+      } catch (error) {
+        console.error("Error removing player:", error);
+        showNotification('Error removing player. Please try again.', 'error');
+      }
+    };
+
+    // Data Loading Functions
+    async function loadPlayers() {
+      try {
+        const snapshot = await db.collection('players').orderBy('created').get();
+        state.players = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          currentChips: doc.data().currentChips || doc.data().buyins || 0,
+          buyins: doc.data().buyins || 0
+        }));
+        
+        renderPlayers();
+        if (state.activeTab === 'levy') renderLevyPlayers();
+        if (state.activeTab === 'expenses') renderExpensePlayers();
+        if (state.activeTab === 'settle') renderFinalCountForm();
+      } catch (error) {
+        console.error("Error loading players:", error);
+        showNotification('Error loading players. Please refresh the page.', 'error');
+      }
+    }
+
+    async function loadExpenses() {
+      try {
+        const snapshot = await db.collection('expenses').orderBy('created', 'desc').get();
+        state.expenses = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        renderExpenses();
+      } catch (error) {
+        console.error("Error loading expenses:", error);
+        showNotification('Error loading expenses. Please refresh the page.', 'error');
+      }
+    }
+
+    // Initialize App
+    async function initApp() {
+      await loadPlayers();
+      await loadExpenses();
+      
+      // Set initial active tab
+      document.querySelector('.tab[data-tab="players"]').classList.add('active');
+      document.getElementById('players-tab').classList.add('active');
+    }
+
+    // Start the app
+    initApp();
   </script>
 </body>
 </html>
