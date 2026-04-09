@@ -2,1175 +2,290 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Poker Accounting App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cards & Smoke | Secure Poker Ledger</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-            color: #333;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        h1, h2, h3 {
-            color: #333;
-        }
-
-        input, select, textarea {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-
-        button {
-            padding: 10px 15px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-
-        button:hover {
-            background: #45a049;
-        }
-
-        .tabs {
-            display: flex;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            background-color: #eee;
-            border: 1px solid #ddd;
-            border-radius: 4px 4px 0 0;
-            margin-right: 5px;
-        }
-
-        .tab.active {
-            background-color: #4CAF50;
-            color: white;
-            border-bottom: 1px solid #4CAF50;
-        }
-
-        .tab-content {
-            display: none;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-top: none;
-            border-radius: 0 0 4px 4px;
-            background-color: white;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        table, th, td {
-            border: 1px solid #ddd;
-        }
-
-        th, td {
-            padding: 10px;
-            text-align: left;
-        }
-
-        th {
-            background-color: #f2f2f2;
-        }
-
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .result {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #f2f2f2;
-            border-radius: 4px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        .stats-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .stat-card {
-            background-color: #fff;
-            border-radius: 4px;
-            padding: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .stat-card h3 {
-            margin-top: 0;
-            color: #4CAF50;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-        }
-
-        .modal-content {
-            background-color: #fefefe;
-            margin: 10% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 600px;
-            border-radius: 5px;
-        }
-
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .close:hover,
-        .close:focus {
-            color: black;
-            text-decoration: none;
-        }
-
-        #charts {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            margin-top: 20px;
-        }
-
-        .chart-container {
-            width: 48%;
-            margin-bottom: 20px;
-            background-color: white;
-            padding: 15px;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        @media (max-width: 768px) {
-            .chart-container {
-                width: 100%;
-            }
-            
-            .stats-container {
-                grid-template-columns: 1fr;
-            }
-            
-            .container {
-                padding: 10px;
-            }
-            
-            .tab {
-                padding: 8px 12px;
-                font-size: 14px;
-            }
-        }
-
-        .date-filter {
-            margin-bottom: 20px;
-        }
-
-        #date-range {
-            display: none;
-            margin-top: 10px;
-        }
-
-        #sessionResults {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #e8f5e9;
-            border-radius: 5px;
-        }
-
-        #historyContainer {
-            overflow-x: auto;
-        }
-
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #333;
-            color: white;
-            padding: 10px 20px;
-        }
-
-        .navbar h1 {
-            margin: 0;
-            color: white;
-        }
-
-        .login-form {
-            max-width: 400px;
-            margin: 50px auto;
-            padding: 20px;
-            background: white;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        .login-form h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .login-form input {
-            margin-bottom: 15px;
-        }
-
-        .login-form button {
-            width: 100%;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap');
+        :root { --gold: #c4a14c; --dark-wood: #1a130a; --text-gold: #e8d7b0; }
+        body { background-color: #121212; color: var(--text-gold); font-family: 'Inter', sans-serif; touch-action: manipulation; }
+        .gold-serif { font-family: 'Cinzel', serif; color: var(--gold); }
+        .card { background-color: #271c10; border: 1px solid rgba(196, 161, 76, 0.3); border-radius: 12px; }
+        .input-gold { background: rgba(0,0,0,0.3); border: 1px solid var(--gold); color: var(--text-gold); padding: 12px; border-radius: 8px; width: 100%; font-size: 1.25rem; }
+        .tab-active { color: var(--gold); border-bottom: 3px solid var(--gold); opacity: 1 !important; }
+        .refresh-fab { position: fixed; bottom: 24px; right: 24px; background: var(--gold); color: #000; width: 56px; height: 56px; border-radius: 28px; display: flex; align-items: center; justify-content: center; z-index: 50; box-shadow: 0 4px 15px rgba(0,0,0,0.6); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
     </style>
 </head>
-<body>
-    <!-- Auth Container (This is where you'll modify for a simple PIN login) -->
-    <div id="auth-container">
-    <div id="login-container" class="login-form">
-        <h2>Login with PIN</h2>
-        <input type="password" id="login-password" placeholder="Enter PIN (1234)" required><br>
-        <button id="login-button">Login</button>
-    </div>
-        
-        <div id="register-container" class="login-form hidden">
-            <h2>Register</h2>
-            <input type="email" id="register-email" placeholder="Email" required><br>
-            <input type="password" id="register-password" placeholder="Password" required><br>
-            <button id="register-button">Register</button>
-            <p>Already have an account? <a href="#" id="show-login">Login</a></p>
-        </div>
-    </div>
+<body class="pb-24">
 
-    <!-- App Container -->
-    <div id="app-container" class="hidden">
-        <div class="navbar">
-            <h1>Poker Accounting</h1>
-            <button id="logout-button">Logout</button>
+    <header class="p-6 text-center border-b-2 border-[#c4a14c] bg-[#1a130a]">
+        <h1 class="text-3xl font-bold uppercase gold-serif text-shadow">Cards & Smoke</h1>
+        <div class="flex items-center justify-center mt-1">
+            <span id="sync-status" class="status-dot bg-red-500"></span>
+            <p class="text-[10px] italic opacity-70 tracking-widest uppercase">Secured Live Sync</p>
         </div>
-        
-        <div class="container">
-            <div class="tabs">
-                <div class="tab active" data-tab="addSession">Add Session</div>
-                <div class="tab" data-tab="viewHistory">History</div>
-                <div class="tab" data-tab="statistics">Statistics</div>
-            </div>
-            
-            <div id="addSession" class="tab-content active">
-                <h2>Record New Session</h2>
-                
-                <div class="form-group">
-                    <label for="sessionDate">Date</label>
-                    <input type="date" id="sessionDate" required>
+    </header>
+
+    <nav class="flex bg-[#221910] border-b border-[#a38548] sticky top-0 z-40">
+        <button onclick="showSection('round')" id="btn-round" class="flex-1 py-4 text-sm font-bold tab-active">Round</button>
+        <button onclick="showSection('players')" id="btn-players" class="flex-1 py-4 text-sm font-bold opacity-50">Players</button>
+        <button onclick="showSection('history')" id="btn-history" class="flex-1 py-4 text-sm font-bold opacity-50">History</button>
+    </nav>
+
+    <main class="p-4 space-y-6">
+        <div id="section-round" class="section-content">
+            <div class="card p-5 space-y-4">
+                <div>
+                    <label class="text-[10px] uppercase text-gold/60">Pot Size (Max 1M)</label>
+                    <input type="number" id="potInput" oninput="updateLiveLevy()" class="input-gold text-4xl text-center" placeholder="0" inputmode="numeric">
                 </div>
-                
-                <div class="form-group">
-                    <label for="venue">Venue</label>
-                    <input type="text" id="venue" placeholder="Enter venue" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="buyIn">Buy-In Amount ($)</label>
-                    <input type="number" id="buyIn" placeholder="Enter buy-in amount" step="0.01" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="cashOut">Cash-Out Amount ($)</label>
-                    <input type="number" id="cashOut" placeholder="Enter cash-out amount" step="0.01" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="hours">Hours Played</label>
-                    <input type="number" id="hours" placeholder="Enter hours played" step="0.1" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="notes">Notes</label>
-                    <textarea id="notes" placeholder="Enter session notes (optional)" rows="3"></textarea>
-                </div>
-                
-                <button id="saveSession">Save Session</button>
-                
-                <div id="sessionResults" class="hidden">
-                    <h3>Session Results</h3>
-                    <p id="profitLoss"></p>
-                    <p id="hourlyRate"></p>
-                </div>
-            </div>
-            
-            <div id="viewHistory" class="tab-content">
-                <h2>Session History</h2>
-                
-                <div class="date-filter">
-                    <label for="dateFilter">Filter by date:</label>
-                    <select id="dateFilter">
-                        <option value="all">All time</option>
-                        <option value="thisMonth">This month</option>
-                        <option value="lastMonth">Last month</option>
-                        <option value="thisYear">This year</option>
-                        <option value="lastYear">Last year</option>
-                        <option value="custom">Custom range</option>
-                    </select>
-                    
-                    <div id="date-range">
-                        <div class="form-group">
-                            <label for="startDate">Start Date</label>
-                            <input type="date" id="startDate">
-                        </div>
-                        <div class="form-group">
-                            <label for="endDate">End Date</label>
-                            <input type="date" id="endDate">
-                        </div>
-                        <button id="applyDateFilter">Apply Filter</button>
+                <div class="grid grid-cols-2 gap-4 bg-black/30 p-4 rounded-lg border border-gold/10">
+                    <div>
+                        <p class="text-[10px] opacity-60 uppercase">Levy (5% ≥ 1k)</p>
+                        <p id="liveLevy" class="text-2xl font-bold text-red-400">0</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] opacity-60 uppercase">Winner Net</p>
+                        <p id="liveNet" class="text-2xl font-bold text-green-400">0</p>
                     </div>
                 </div>
-                
-                <div class="stats-container">
-                    <div class="stat-card">
-                        <h3>Summary</h3>
-                        <p id="totalSessions">Total Sessions: 0</p>
-                        <p id="totalProfit">Total Profit/Loss: $0.00</p>
-                        <p id="totalHours">Total Hours: 0.0</p>
-                        <p id="averageHourly">Average Hourly Rate: $0.00/hr</p>
-                    </div>
+                <div>
+                    <label class="text-[10px] uppercase text-gold/60">Select Winner</label>
+                    <select id="winnerSelect" class="input-gold"></select>
                 </div>
-                
-                <div id="historyContainer">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Venue</th>
-                                <th>Buy-In</th>
-                                <th>Cash-Out</th>
-                                <th>Profit/Loss</th>
-                                <th>Hours</th>
-                                <th>Hourly Rate</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="historyTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <div id="statistics" class="tab-content">
-                <h2>Statistics</h2>
-                
-                <div class="stats-container">
-                    <div class="stat-card">
-                        <h3>Overall</h3>
-                        <p id="statTotalSessions">Total Sessions: 0</p>
-                        <p id="statTotalProfit">Total Profit/Loss: $0.00</p>
-                        <p id="statWinRate">Win Rate: 0%</p>
-                        <p id="statAvgProfit">Average Profit per Session: $0.00</p>
-                        <p id="statLevyPaid">Total Levy Paid: $0.00</p>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <h3>Time Stats</h3>
-                        <p id="statTotalHours">Total Hours: 0.0</p>
-                        <p id="statAvgSession">Average Session Length: 0.0 hours</p>
-                        <p id="statHourlyRate">Average Hourly Rate: $0.00/hr</p>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <h3>Best Performance</h3>
-                        <p id="statBestVenue">Best Venue: N/A</p>
-                        <p id="statBiggestWin">Biggest Win: $0.00</p>
-                        <p id="statBestDay">Best Day: N/A</p>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <h3>Worst Performance</h3>
-                        <p id="statWorstVenue">Worst Venue: N/A</p>
-                        <p id="statBiggestLoss">Biggest Loss: $0.00</p>
-                        <p id="statWorstDay">Worst Day: N/A</p>
-                    </div>
-                </div>
-                
-                <div id="charts">
-                    <div class="chart-container">
-                        <h3>Profit/Loss Over Time</h3>
-                        <canvas id="profitChart"></canvas>
-                    </div>
-                    
-                    <div class="chart-container">
-                        <h3>Venue Performance</h3>
-                        <canvas id="venueChart"></canvas>
-                    </div>
-                </div>
+                <button id="confirmBtn" onclick="confirmRound()" class="w-full bg-[#c4a14c] text-black font-bold py-5 rounded-lg active:scale-95 transition-all text-xl uppercase tracking-widest shadow-lg">Confirm Win</button>
             </div>
         </div>
 
-        <!-- Edit Session Modal -->
-        <div id="editModal" class="modal">
-            <div class="modal-content">
-                <span class="close">&times;</span>
-                <h2>Edit Session</h2>
-                
-                <input type="hidden" id="editSessionId">
-                
-                <div class="form-group">
-                    <label for="editDate">Date</label>
-                    <input type="date" id="editDate" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="editVenue">Venue</label>
-                    <input type="text" id="editVenue" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="editBuyIn">Buy-In Amount ($)</label>
-                    <input type="number" id="editBuyIn" step="0.01" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="editCashOut">Cash-Out Amount ($)</label>
-                    <input type="number" id="editCashOut" step="0.01" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="editHours">Hours Played</label>
-                    <input type="number" id="editHours" step="0.1" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="editNotes">Notes</label>
-                    <textarea id="editNotes" rows="3"></textarea>
-                </div>
-                
-                <div style="display: flex; justify-content: space-between;">
-                    <button id="updateSession" style="background-color: #4CAF50;">Update Session</button>
-                    <button id="deleteSession" style="background-color: #f44336;">Delete Session</button>
+        <div id="section-players" class="section-content hidden space-y-4">
+            <div class="card p-4">
+                <div class="flex gap-2">
+                    <input type="text" id="newPlayerName" maxlength="20" class="input-gold" placeholder="Player Name">
+                    <button id="addPlayerBtn" onclick="addPlayer()" class="bg-[#c4a14c] text-black px-6 font-bold rounded-lg shadow-inner">+</button>
                 </div>
             </div>
+            <div id="playerContainer" class="space-y-3"></div>
         </div>
-    </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <div id="section-history" class="section-content hidden">
+            <div class="card p-4">
+                <h2 class="gold-serif text-lg mb-4">Live Session History</h2>
+                <div id="historyLog" class="space-y-3"></div>
+            </div>
+        </div>
+    </main>
 
-    <script>
-        // Your Firebase configuration - REPLACE THIS WITH YOUR OWN FIREBASE CONFIG
-        // LINE 466-474: This is where you need to replace with your Firebase configuration
+    <button onclick="confirmReset()" class="refresh-fab">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+    </button>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, updateDoc, deleteDoc, writeBatch, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
         const firebaseConfig = {
-  apiKey: "AIzaSyBVtypWYLHnlpjQcVdcr-01mEbWc7erDH4",
-  authDomain: "pokeraccountingapp.firebaseapp.com",
-  projectId: "pokeraccountingapp",
-  storageBucket: "pokeraccountingapp.firebasestorage.app",
-  messagingSenderId: "453989055970",
-  appId: "1:453989055970:web:ea1bfc38ef564b38d94dbb"
-};
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
+            apiKey: "AIzaSyBVtypWYLHnlpjQcVdcr-01mEbWc7erDH4",
+            authDomain: "pokeraccountingapp.firebaseapp.com",
+            projectId: "pokeraccountingapp",
+            storageBucket: "pokeraccountingapp.firebasestorage.app",
+            messagingSenderId: "453989055970",
+            appId: "1:453989055970:web:ea1bfc38ef564b38d94dbb"
+        };
 
-        // DOM Elements
-        const authContainer = document.getElementById('auth-container');
-        const loginContainer = document.getElementById('login-container');
-        const registerContainer = document.getElementById('register-container');
-        const appContainer = document.getElementById('app-container');
-        const showRegisterLink = document.getElementById('show-register');
-        const showLoginLink = document.getElementById('show-login');
-        const loginButton = document.getElementById('login-button');
-        const registerButton = document.getElementById('register-button');
-        const logoutButton = document.getElementById('logout-button');
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        const appId = 'cards-smoke-production'; 
 
-        // Authentication
-        // LINE 494-546: This is the authentication section you might want to replace with PIN login
-        showRegisterLink.addEventListener('click', () => {
-            loginContainer.classList.add('hidden');
-            registerContainer.classList.remove('hidden');
-        });
+        let user = null;
+        let localPlayers = [];
+        let localHouse = 0;
+        let lastActionTime = 0;
 
-        showLoginLink.addEventListener('click', () => {
-            registerContainer.classList.add('hidden');
-            loginContainer.classList.remove('hidden');
-        });
-
-        loginButton.addEventListener('click', () => {
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            
-            auth.signInWithEmailAndPassword(email, password)
-                .then(() => {
-                    console.log('Login successful');
-                })
-                .catch(error => {
-                    alert('Login Error: ' + error.message);
-                });
-        });
-
-       // PIN Authentication - Replace the authentication section (approx line 494-546)
-showRegisterLink.addEventListener('click', () => {
-    alert('Registration is not required. Use PIN code 1234 to access the app.');
-});
-
-loginButton.addEventListener('click', () => {
-    const pinCode = document.getElementById('login-password').value;
-    
-    if (pinCode === "1234") {
-        console.log('Login successful');
-        // Store login in localStorage
-        localStorage.setItem('isLoggedIn', 'true');
-        // Show app container, hide auth
-        authContainer.classList.add('hidden');
-        appContainer.classList.remove('hidden');
-        // Load data
-        loadSessionHistory();
-        loadStatistics();
-    } else {
-        alert('Incorrect PIN. Please try again.');
-    }
-});
-
-logoutButton.addEventListener('click', () => {
-    localStorage.removeItem('isLoggedIn');
-    authContainer.classList.remove('hidden');
-    appContainer.classList.add('hidden');
-    loginContainer.classList.remove('hidden');
-    registerContainer.classList.add('hidden');
-});
-
-// Check if already logged in
-if (localStorage.getItem('isLoggedIn') === 'true') {
-    authContainer.classList.add('hidden');
-    appContainer.classList.remove('hidden');
-    loadSessionHistory();
-    loadStatistics();
-} else {
-    authContainer.classList.remove('hidden');
-    appContainer.classList.add('hidden');
-    loginContainer.classList.remove('hidden');
-    registerContainer.classList.add('hidden');
-}
-
-        // Tab Navigation
-        const tabs = document.querySelectorAll('.tab');
-        const tabContents = document.querySelectorAll('.tab-content');
-        
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                const targetTab = tab.getAttribute('data-tab');
-                
-                // Update active tab
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                
-                // Update visible content
-                tabContents.forEach(content => {
-                    content.classList.remove('active');
-                    if (content.id === targetTab) {
-                        content.classList.add('active');
-                    }
-                });
-                
-                if (targetTab === 'viewHistory') {
-                    loadSessionHistory();
-                } else if (targetTab === 'statistics') {
-                    loadStatistics();
-                }
-            });
-        });
-        
-        // Date Filter
-        const dateFilter = document.getElementById('dateFilter');
-        const dateRange = document.getElementById('date-range');
-        const applyDateFilterButton = document.getElementById('applyDateFilter');
-        
-        dateFilter.addEventListener('change', () => {
-            if (dateFilter.value === 'custom') {
-                dateRange.style.display = 'block';
+        onAuthStateChanged(auth, async (u) => {
+            if (!u) {
+                await signInAnonymously(auth);
             } else {
-                dateRange.style.display = 'none';
-                loadSessionHistory();
+                user = u;
+                document.getElementById('sync-status').classList.replace('bg-red-500', 'bg-green-500');
+                initLiveSync();
             }
         });
-        
-        applyDateFilterButton.addEventListener('click', loadSessionHistory);
-        
-        // Save Session
-        document.getElementById('saveSession').addEventListener('click', () => {
-            const user = auth.currentUser;
-            if (!user) {
-                alert('You must be logged in to save a session');
-                return;
+
+        // --- ANTI-DDOS / RATE LIMITING ---
+        function checkRateLimit() {
+            const now = Date.now();
+            if (now - lastActionTime < 2000) { // 2 second cooldown
+                return false;
             }
-            
-            const date = document.getElementById('sessionDate').value;
-            const venue = document.getElementById('venue').value;
-            const buyIn = parseFloat(document.getElementById('buyIn').value);
-            const cashOut = parseFloat(document.getElementById('cashOut').value);
-            const hours = parseFloat(document.getElementById('hours').value);
-            const notes = document.getElementById('notes').value;
-            
-            if (!date || !venue || isNaN(buyIn) || isNaN(cashOut) || isNaN(hours)) {
-                alert('Please fill in all required fields correctly.');
-                return;
-            }
-            
-            // Calculate profit (CORRECTED to include levy calculation)
-            // The levy is 5% of the profit if profit > 0
-            const profit = cashOut - buyIn;
-            let levy = 0;
-            
-            if (profit > 0) {
-                // Calculate 5% levy on profit
-                levy = profit * 0.05;
-            }
-            
-            const netProfit = profit - levy;
-            const hourlyRate = hours > 0 ? netProfit / hours : 0;
-            
-            db.collection('sessions').add({
-                userId: user.uid,
-                date: date,
-                venue: venue,
-                buyIn: buyIn,
-                cashOut: cashOut,
-                profit: profit,
-                levy: levy,
-                netProfit: netProfit,
-                hours: hours,
-                hourlyRate: hourlyRate,
-                notes: notes,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            })
-            .then(() => {
-                alert('Session saved successfully!');
-                
-                document.getElementById('sessionResults').classList.remove('hidden');
-                document.getElementById('profitLoss').textContent = `Profit/Loss: $${netProfit.toFixed(2)} (Levy: $${levy.toFixed(2)})`;
-                document.getElementById('hourlyRate').textContent = `Hourly Rate: $${hourlyRate.toFixed(2)}/hr`;
-                
-                // Clear form
-                document.getElementById('sessionDate').value = '';
-                document.getElementById('venue').value = '';
-                document.getElementById('buyIn').value = '';
-                document.getElementById('cashOut').value = '';
-                document.getElementById('hours').value = '';
-                document.getElementById('notes').value = '';
-                
-                // Reload session history if in that tab
-                if (document.getElementById('viewHistory').classList.contains('active')) {
-                    loadSessionHistory();
-                }
-                
-                // Reload statistics if in that tab
-                if (document.getElementById('statistics').classList.contains('active')) {
-                    loadStatistics();
-                }
-            })
-            .catch(error => {
-                alert('Error saving session: ' + error.message);
-            });
-        });
-        
-        // Edit Modal
-        const editModal = document.getElementById('editModal');
-        const closeModalBtn = document.querySelector('.close');
-        
-        closeModalBtn.addEventListener('click', () => {
-            editModal.style.display = 'none';
-        });
-        
-        window.addEventListener('click', (event) => {
-            if (event.target === editModal) {
-                editModal.style.display = 'none';
-            }
-        });
-        
-        function openEditModal(sessionId, sessionData) {
-            document.getElementById('editSessionId').value = sessionId;
-            document.getElementById('editDate').value = sessionData.date;
-            document.getElementById('editVenue').value = sessionData.venue;
-            document.getElementById('editBuyIn').value = sessionData.buyIn;
-            document.getElementById('editCashOut').value = sessionData.cashOut;
-            document.getElementById('editHours').value = sessionData.hours;
-            document.getElementById('editNotes').value = sessionData.notes || '';
-            
-            editModal.style.display = 'block';
+            lastActionTime = now;
+            return true;
         }
-        
-        document.getElementById('updateSession').addEventListener('click', () => {
-            const user = auth.currentUser;
-            if (!user) return;
-            
-            const sessionId = document.getElementById('editSessionId').value;
-            const date = document.getElementById('editDate').value;
-            const venue = document.getElementById('editVenue').value;
-            const buyIn = parseFloat(document.getElementById('editBuyIn').value);
-            const cashOut = parseFloat(document.getElementById('editCashOut').value);
-            const hours = parseFloat(document.getElementById('editHours').value);
-            const notes = document.getElementById('editNotes').value;
-            
-            if (!date || !venue || isNaN(buyIn) || isNaN(cashOut) || isNaN(hours)) {
-                alert('Please fill in all required fields correctly.');
-                return;
-            }
-            
-            // Calculate profit (CORRECTED to include levy calculation)
-            const profit = cashOut - buyIn;
-            let levy = 0;
-            
-            if (profit > 0) {
-                // Calculate 5% levy on profit
-                levy = profit * 0.05;
-            }
-            
-            const netProfit = profit - levy;
-            const hourlyRate = hours > 0 ? netProfit / hours : 0;
-            
-            db.collection('sessions').doc(sessionId).update({
-                date: date,
-                venue: venue,
-                buyIn: buyIn,
-                cashOut: cashOut,
-                profit: profit,
-                levy: levy,
-                netProfit: netProfit,
-                hours: hours,
-                hourlyRate: hourlyRate,
-                notes: notes,
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            })
-            .then(() => {
-                alert('Session updated successfully!');
-                editModal.style.display = 'none';
-                loadSessionHistory();
-                loadStatistics();
-            })
-            .catch(error => {
-                alert('Error updating session: ' + error.message);
+
+        // --- SANITIZATION ---
+        function sanitize(str) {
+            const temp = document.createElement('div');
+            temp.textContent = str;
+            return temp.innerHTML.slice(0, 25); // Limit length
+        }
+
+        function initLiveSync() {
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'players'), (snap) => {
+                localPlayers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                render();
             });
-        });
-        
-        document.getElementById('deleteSession').addEventListener('click', () => {
-            if (confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
-                const user = auth.currentUser;
-                if (!user) return;
-                
-                const sessionId = document.getElementById('editSessionId').value;
-                
-                db.collection('sessions').doc(sessionId).delete()
-                .then(() => {
-                    alert('Session deleted successfully!');
-                    editModal.style.display = 'none';
-                    loadSessionHistory();
-                    loadStatistics();
-                })
-                .catch(error => {
-                    alert('Error deleting session: ' + error.message);
+
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'totals', 'house'), (d) => {
+                localHouse = d.exists() ? d.data().value : 0;
+                render();
+            });
+
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'history'), (snap) => {
+                const logs = snap.docs.map(d => d.data()).sort((a,b) => b.timestamp - a.timestamp);
+                renderHistory(logs);
+            });
+        }
+
+        window.updateLiveLevy = () => {
+            const pot = Math.min(parseFloat(document.getElementById('potInput').value) || 0, 1000000); // Guardrail
+            let levy = pot >= 1000 ? Math.ceil((pot * 0.05) / 10) * 10 : 0;
+            document.getElementById('liveLevy').innerText = levy.toLocaleString();
+            document.getElementById('liveNet').innerText = (pot - levy).toLocaleString();
+        };
+
+        window.showSection = (id) => {
+            document.querySelectorAll('.section-content').forEach(s => s.classList.add('hidden'));
+            document.querySelectorAll('nav button').forEach(b => { b.classList.add('opacity-50'); b.classList.remove('tab-active'); });
+            document.getElementById('section-' + id).classList.remove('hidden');
+            document.getElementById('btn-' + id).classList.replace('opacity-50', 'tab-active');
+        };
+
+        window.addPlayer = async () => {
+            if (!checkRateLimit()) return;
+            const btn = document.getElementById('addPlayerBtn');
+            const nameInput = document.getElementById('newPlayerName');
+            const name = sanitize(nameInput.value.trim());
+
+            if (name && user) {
+                btn.disabled = true;
+                const id = Date.now().toString();
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', id), { 
+                    name, 
+                    balance: 0, 
+                    expanded: false,
+                    createdAt: Date.now() 
                 });
+                nameInput.value = '';
+                btn.disabled = false;
             }
-        });
-        
-        // Load Session History
-        function loadSessionHistory() {
-            const user = auth.currentUser;
-            if (!user) return;
-            
-            // Apply date filtering
-            const filterValue = dateFilter.value;
-            const now = new Date();
-            let startDate, endDate;
-            
-            if (filterValue === 'thisMonth') {
-                startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-                endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            } else if (filterValue === 'lastMonth') {
-                startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                endDate = new Date(now.getFullYear(), now.getMonth(), 0);
-            } else if (filterValue === 'thisYear') {
-                startDate = new Date(now.getFullYear(), 0, 1);
-                endDate = new Date(now.getFullYear(), 11, 31);
-            } else if (filterValue === 'lastYear') {
-                startDate = new Date(now.getFullYear() - 1, 0, 1);
-                endDate = new Date(now.getFullYear() - 1, 11, 31);
-            } else if (filterValue === 'custom') {
-                const startDateValue = document.getElementById('startDate').value;
-                const endDateValue = document.getElementById('endDate').value;
+        };
+
+        window.confirmRound = async () => {
+            if (!checkRateLimit()) return;
+            const btn = document.getElementById('confirmBtn');
+            const pot = Math.min(parseFloat(document.getElementById('potInput').value) || 0, 1000000);
+            const winnerIdx = document.getElementById('winnerSelect').value;
+
+            if (pot <= 0 || winnerIdx === "" || !user) return;
+
+            btn.disabled = true;
+            const winner = localPlayers[winnerIdx];
+            let levy = pot >= 1000 ? Math.ceil((pot * 0.05) / 10) * 10 : 0;
+            const net = pot - levy;
+
+            try {
+                const batch = writeBatch(db);
+                // Atomic increments prevent race conditions
+                batch.update(doc(db, 'artifacts', appId, 'public', 'data', 'players', winner.id), { 
+                    balance: increment(net) 
+                });
+                batch.set(doc(db, 'artifacts', appId, 'public', 'data', 'totals', 'house'), { 
+                    value: increment(levy) 
+                }, { merge: true });
                 
-                if (startDateValue) {
-                    startDate = new Date(startDateValue);
-                }
-                if (endDateValue) {
-                    endDate = new Date(endDateValue);
-                    // Set to end of day
-                    endDate.setHours(23, 59, 59, 999);
-                }
-            }
-            
-            let query = db.collection('sessions').where('userId', '==', user.uid);
-            
-            if (startDate) {
-                query = query.where('date', '>=', startDate.toISOString().split('T')[0]);
-            }
-            if (endDate) {
-                query = query.where('date', '<=', endDate.toISOString().split('T')[0]);
-            }
-            
-            query.orderBy('date', 'desc')
-                .get()
-                .then((querySnapshot) => {
-                    const tableBody = document.getElementById('historyTableBody');
-                    tableBody.innerHTML = '';
-                    
-                    let totalSessions = 0;
-                    let totalProfit = 0;
-                    let totalHours = 0;
-                    
-                    querySnapshot.forEach((doc) => {
-                        const session = doc.data();
-                        totalSessions++;
-                        totalProfit += session.netProfit || (session.profit - (session.levy || 0));
-                        totalHours += session.hours;
-                        
-                        const row = tableBody.insertRow();
-                        
-                        row.insertCell(0).textContent = session.date;
-                        row.insertCell(1).textContent = session.venue;
-                        row.insertCell(2).textContent = '$' + session.buyIn.toFixed(2);
-                        row.insertCell(3).textContent = '$' + session.cashOut.toFixed(2);
-                        
-                        // Show net profit (after levy)
-                        const netProfit = session.netProfit || (session.profit - (session.levy || 0));
-                        const profitCell = row.insertCell(4);
-                        profitCell.textContent = '$' + netProfit.toFixed(2);
-                        profitCell.style.color = netProfit >= 0 ? 'green' : 'red';
-                        
-                        row.insertCell(5).textContent = session.hours.toFixed(1);
-                        
-                        const hourlyCell = row.insertCell(6);
-                        const hourlyRate = session.hourlyRate || (session.hours > 0 ? netProfit / session.hours : 0);
-                        hourlyCell.textContent = '$' + hourlyRate.toFixed(2) + '/hr';
-                        hourlyCell.style.color = hourlyRate >= 0 ? 'green' : 'red';
-                        
-                        const actionsCell = row.insertCell(7);
-                        const editButton = document.createElement('button');
-                        editButton.textContent = 'Edit';
-                        editButton.style.backgroundColor = '#4CAF50';
-                        editButton.style.color = 'white';
-                        editButton.style.border = 'none';
-                        editButton.style.padding = '5px 10px';
-                        editButton.style.cursor = 'pointer';
-                        editButton.style.marginRight = '5px';
-                        editButton.addEventListener('click', () => openEditModal(doc.id, session));
-                        actionsCell.appendChild(editButton);
-                    });
-                    
-                    // Update summary statistics
-                    document.getElementById('totalSessions').textContent = `Total Sessions: ${totalSessions}`;
-                    document.getElementById('totalProfit').textContent = `Total Profit/Loss: $${totalProfit.toFixed(2)}`;
-                    document.getElementById('totalHours').textContent = `Total Hours: ${totalHours.toFixed(1)}`;
-                    
-                    const averageHourly = totalHours > 0 ? totalProfit / totalHours : 0;
-                    document.getElementById('averageHourly').textContent = `Average Hourly Rate: $${averageHourly.toFixed(2)}/hr`;
-                })
-                .catch(error => {
-                    console.error("Error getting documents: ", error);
+                const logId = Date.now().toString();
+                batch.set(doc(db, 'artifacts', appId, 'public', 'data', 'history', logId), {
+                    timestamp: Date.now(),
+                    timeString: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                    winner: winner.name, pot, levy, net
                 });
-        }
-        
-        // Load Statistics
-        function loadStatistics() {
-            const user = auth.currentUser;
-            if (!user) return;
-            
-            db.collection('sessions').where('userId', '==', user.uid)
-                .orderBy('date', 'asc')
-                .get()
-                .then((querySnapshot) => {
-                    if (querySnapshot.empty) {
-                        return;
-                    }
-                    
-                    let totalSessions = 0;
-                    let totalProfit = 0;
-                    let totalNetProfit = 0;
-                    let totalHours = 0;
-                    let winningSessions = 0;
-                    let biggestWin = 0;
-                    let biggestLoss = 0;
-                    let biggestWinSession = null;
-                    let biggestLossSession = null;
-                    let totalLevyPaid = 0;
-                    
-                    // For venue statistics
-                    const venueStats = {};
-                    
-                    // For profit over time chart
-                    const dates = [];
-                    const profits = [];
-                    const cumulativeProfit = [];
-                    let runningTotal = 0;
-                    
-                    querySnapshot.forEach((doc) => {
-                        const session = doc.data();
-                        totalSessions++;
-                        totalProfit += session.profit;
-                        
-                        // Calculate netProfit if not already stored
-                        const netProfit = session.netProfit || (session.profit - (session.levy || 0));
-                        totalNetProfit += netProfit;
-                        
-                        totalHours += session.hours;
-                        
-                        // Track levy paid
-                        totalLevyPaid += session.levy || 0;
-                        
-                        // Track winning sessions
-                        if (netProfit > 0) {
-                            winningSessions++;
-                        }
-                        
-                        // Track biggest win and loss
-                        if (netProfit > biggestWin) {
-                            biggestWin = netProfit;
-                            biggestWinSession = session;
-                        }
-                        
-                        if (netProfit < biggestLoss) {
-                            biggestLoss = netProfit;
-                            biggestLossSession = session;
-                        }
-                        
-                        // Venue statistics
-                        if (!venueStats[session.venue]) {
-                            venueStats[session.venue] = {
-                                sessions: 0,
-                                profit: 0,
-                                hours: 0
-                            };
-                        }
-                        
-                        venueStats[session.venue].sessions++;
-                        venueStats[session.venue].profit += netProfit;
-                        venueStats[session.venue].hours += session.hours;
-                        
-                        // For chart data
-                        dates.push(session.date);
-                        profits.push(netProfit);
-                        runningTotal += netProfit;
-                        cumulativeProfit.push(runningTotal);
-                    });
-                    
-                    // Overall stats
-                    document.getElementById('statTotalSessions').textContent = `Total Sessions: ${totalSessions}`;
-                    document.getElementById('statTotalProfit').textContent = `Total Profit/Loss: $${totalNetProfit.toFixed(2)}`;
-                    
-                    const winRate = totalSessions > 0 ? (winningSessions / totalSessions) * 100 : 0;
-                    document.getElementById('statWinRate').textContent = `Win Rate: ${winRate.toFixed(1)}%`;
-                    
-                    const avgProfit = totalSessions > 0 ? totalNetProfit / totalSessions : 0;
-                    document.getElementById('statAvgProfit').textContent = `Average Profit per Session: $${avgProfit.toFixed(2)}`;
-                    
-                    document.getElementById('statLevyPaid').textContent = `Total Levy Paid: $${totalLevyPaid.toFixed(2)}`;
-                    
-                    // Time stats
-                    document.getElementById('statTotalHours').textContent = `Total Hours: ${totalHours.toFixed(1)}`;
-                    
-                    const avgSession = totalSessions > 0 ? totalHours / totalSessions : 0;
-                    document.getElementById('statAvgSession').textContent = `Average Session Length: ${avgSession.toFixed(1)} hours`;
-                    
-                    const hourlyRate = totalHours > 0 ? totalNetProfit / totalHours : 0;
-                    document.getElementById('statHourlyRate').textContent = `Average Hourly Rate: $${hourlyRate.toFixed(2)}/hr`;
-                    
-                    // Best performance
-                    let bestVenue = null;
-                    let bestVenueProfit = -Infinity;
-                    
-                    for (const venue in venueStats) {
-                        if (venueStats[venue].sessions >= 3 && venueStats[venue].profit > bestVenueProfit) {
-                            bestVenue = venue;
-                            bestVenueProfit = venueStats[venue].profit;
-                        }
-                    }
-                    
-                    document.getElementById('statBestVenue').textContent = `Best Venue: ${bestVenue || 'N/A'}`;
-                    document.getElementById('statBiggestWin').textContent = `Biggest Win: $${biggestWin.toFixed(2)}`;
-                    document.getElementById('statBestDay').textContent = `Best Day: ${biggestWinSession ? biggestWinSession.date : 'N/A'}`;
-                    
-                    // Worst performance
-                    let worstVenue = null;
-                    let worstVenueProfit = Infinity;
-                    
-                    for (const venue in venueStats) {
-                        if (venueStats[venue].sessions >= 3 && venueStats[venue].profit < worstVenueProfit) {
-                            worstVenue = venue;
-                            worstVenueProfit = venueStats[venue].profit;
-                        }
-                    }
-                    
-                    document.getElementById('statWorstVenue').textContent = `Worst Venue: ${worstVenue || 'N/A'}`;
-                    document.getElementById('statBiggestLoss').textContent = `Biggest Loss: $${biggestLoss.toFixed(2)}`;
-                    document.getElementById('statWorstDay').textContent = `Worst Day: ${biggestLossSession ? biggestLossSession.date : 'N/A'}`;
-                    
-                    // Create Profit/Loss chart
-                    createProfitChart(dates, profits, cumulativeProfit);
-                    
-                    // Create Venue Performance chart
-                    createVenueChart(venueStats);
-                })
-                .catch(error => {
-                    console.error("Error getting statistics: ", error);
-                });
-        }
-        
-        // Chart creation functions
-        function createProfitChart(dates, profits, cumulativeProfit) {
-            const ctx = document.getElementById('profitChart').getContext('2d');
-            
-            // Destroy existing chart if it exists
-            if (window.profitChart instanceof Chart) {
-                window.profitChart.destroy();
+
+                await batch.commit();
+                document.getElementById('potInput').value = '';
+                window.updateLiveLevy();
+            } finally {
+                setTimeout(() => { btn.disabled = false; }, 1000);
             }
-            
-            window.profitChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: dates,
-                    datasets: [
-                        {
-                            label: 'Session Profit/Loss',
-                            data: profits,
-                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                            borderColor: 'rgba(75, 192, 192, 1)',
-                            borderWidth: 2,
-                            pointRadius: 4,
-                            type: 'bar'
-                        },
-                        {
-                            label: 'Cumulative Profit/Loss',
-                            data: cumulativeProfit,
-                            borderColor: 'rgba(255, 99, 132, 1)',
-                            borderWidth: 2,
-                            pointRadius: 2,
-                            fill: false,
-                            type: 'line'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: false
-                        }
-                    }
-                }
-            });
-        }
-        
-        function createVenueChart(venueStats) {
-            const ctx = document.getElementById('venueChart').getContext('2d');
-            
-            // Process venue data
-            const venues = Object.keys(venueStats);
-            const profits = venues.map(venue => venueStats[venue].profit);
-            const hourlyRates = venues.map(venue => 
-                venueStats[venue].hours > 0 ? venueStats[venue].profit / venueStats[venue].hours : 0
-            );
-            
-            // Color based on profit (green for positive, red for negative)
-            const backgroundColors = profits.map(profit => 
-                profit >= 0 ? 'rgba(75, 192, 192, 0.2)' : 'rgba(255, 99, 132, 0.2)'
-            );
-            const borderColors = profits.map(profit => 
-                profit >= 0 ? 'rgba(75, 192, 192, 1)' : 'rgba(255, 99, 132, 1)'
-            );
-            
-            // Destroy existing chart if it exists
-            if (window.venueChart instanceof Chart) {
-                window.venueChart.destroy();
+        };
+
+        window.toggleExpand = async (id, currentVal) => {
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', id), { expanded: !currentVal });
+        };
+
+        window.manualAdj = async (id, amt) => {
+            if (!checkRateLimit()) return;
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', id), { balance: increment(amt) });
+        };
+
+        window.confirmReset = async () => {
+            if (confirm("HARD RESET: Wipe all cloud data? (This cannot be undone)")) {
+                const batch = writeBatch(db);
+                localPlayers.forEach(p => batch.delete(doc(db, 'artifacts', appId, 'public', 'data', 'players', p.id)));
+                batch.set(doc(db, 'artifacts', appId, 'public', 'data', 'totals', 'house'), { value: 0 });
+                await batch.commit();
             }
-            
-            window.venueChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: venues,
-                    datasets: [
-                        {
-                            label: 'Total Profit/Loss per Venue',
-                            data: profits,
-                            backgroundColor: backgroundColors,
-                            borderColor: borderColors,
-                            borderWidth: 1
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: false
-                        }
-                    }
-                }
-            });
+        };
+
+        function renderHistory(logs) {
+            document.getElementById('historyLog').innerHTML = logs.slice(0, 15).map(h => `
+                <div class="flex justify-between items-center border-b border-white/5 pb-2">
+                    <div class="text-[10px] opacity-60">
+                        <p class="text-xs text-white font-bold uppercase tracking-tighter">${h.winner}</p>
+                        <p>${h.timeString} | Pot: ${h.pot.toLocaleString()}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-green-400 font-bold">+${h.net.toLocaleString()}</p>
+                        ${h.levy > 0 ? `<p class="text-red-500 text-[9px]">Levy: ${h.levy.toLocaleString()}</p>` : ''}
+                    </div>
+                </div>
+            `).join('');
         }
-        
-        // Set today's date as default for session entry
-        document.addEventListener('DOMContentLoaded', () => {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('sessionDate').value = today;
-        });
+
+        function render() {
+            const select = document.getElementById('winnerSelect');
+            const currentWinner = select.value;
+            select.innerHTML = '<option value="">Select Winner...</option>' + 
+                localPlayers.map((p, i) => `<option value="${i}">${p.name}</option>`).join('');
+            select.value = currentWinner;
+
+            document.getElementById('playerContainer').innerHTML = `
+                <div class="card p-4 border-yellow-500/50 bg-black/40 mb-4 shadow-[0_0_15px_rgba(196,161,76,0.1)]">
+                    <div class="flex justify-between items-center">
+                        <span class="gold-serif uppercase text-xs tracking-widest">Global House Pool</span>
+                        <span class="text-2xl font-bold text-yellow-500">${localHouse.toLocaleString()}</span>
+                    </div>
+                </div>
+            ` + localPlayers.map((p, i) => `
+                <div class="card mb-2 ${p.expanded ? 'expanded' : ''}">
+                    <div onclick="toggleExpand('${p.id}', ${p.expanded})" class="p-4 flex justify-between items-center cursor-pointer active:bg-white/5">
+                        <span class="font-bold text-lg">${p.name}</span>
+                        <span class="text-xl font-mono ${p.balance >= 0 ? 'text-green-400' : 'text-red-400'}">
+                            ${p.balance >= 0 ? '+' : ''}${p.balance.toLocaleString()}
+                        </span>
+                    </div>
+                    <div class="collapsible-content bg-black/20 px-4 pb-4">
+                        <div class="grid grid-cols-2 gap-2 mt-2">
+                            <button onclick="manualAdj('${p.id}', 500)" class="bg-green-600/20 py-3 rounded border border-green-600/30 font-bold active:scale-95 transition-all">+500</button>
+                            <button onclick="manualAdj('${p.id}', -500)" class="bg-red-600/20 py-3 rounded border border-red-600/30 font-bold active:scale-95 transition-all">-500</button>
+                        </div>
+                        <button onclick="if(confirm('Delete ${p.name}?')){deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', '${p.id}'));}" class="w-full text-[10px] text-red-500/60 py-3 mt-2 uppercase tracking-tighter">Remove Player</button>
+                    </div>
+                </div>
+            `).join('');
+        }
     </script>
 </body>
 </html>
