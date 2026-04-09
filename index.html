@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Poker Accounting App</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Add the rich brown/green color scheme we discussed -->
+  <style>
+    body {
+      font-family: 'Georgia', serif;
+      background-color: #3D251E;
+      color: #F5F5DC;
+      margin: 0;
+      padding: 20px;
+    }
+    .app-container {
+      max-width: 800px;
+      margin: 0 auto;
+      border: 5px solid #8B4513;
+      border-radius: 12px;
+      background-image: linear-gradient(to bottom, #582C14, #3D251E);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    /* Add more styles from our design discussion */
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <h1>Poker Accounting App</h1>
+    <p>Your app is now live and automatically deploying!</p>
+    <!-- Add your app components here -->
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script>
+    // Your Firebase configuration (copy from Firebase Console)
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "pokeraccountingapp.firebaseapp.com",
+      projectId: "pokeraccountingapp",
+      storageBucket: "pokeraccountingapp.appspot.com",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    
+    // Your app code will go here
+  </script>
+</body>
+</html>
