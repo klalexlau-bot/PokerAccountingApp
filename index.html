@@ -294,20 +294,46 @@
     </div>
     
     <script>
-        // Your Firebase configuration
-        const firebaseConfig = {
-  apiKey: "AIzaSyBVtypWYLHnlpjQcVdcr-01mEbWc7erDH4",
-  authDomain: "pokeraccountingapp.firebaseapp.com",
-  projectId: "pokeraccountingapp",
-  storageBucket: "pokeraccountingapp.firebasestorage.app",
-  messagingSenderId: "453989055970",
-  appId: "1:453989055970:web:ea1bfc38ef564b38d94dbb"
+        // Simple local storage based data management (replacing Firebase)
+const localDB = {
+    sessions: [],
+    saveSession: function(session) {
+        // Generate an ID if not provided
+        if (!session.id) {
+            session.id = new Date().getTime().toString();
+        }
+        
+        // Add timestamp
+        session.timestamp = new Date().toISOString();
+        
+        // If updating existing session, remove the old one
+        this.sessions = this.sessions.filter(s => s.id !== session.id);
+        
+        // Add the session
+        this.sessions.push(session);
+        
+        // Save to localStorage
+        localStorage.setItem('pokerSessions', JSON.stringify(this.sessions));
+        
+        return session.id;
+    },
+    
+    loadSessions: function() {
+        const savedSessions = localStorage.getItem('pokerSessions');
+        if (savedSessions) {
+            this.sessions = JSON.parse(savedSessions);
+        }
+        return this.sessions;
+    },
+    
+    deleteSession: function(id) {
+        this.sessions = this.sessions.filter(s => s.id !== id);
+        localStorage.setItem('pokerSessions', JSON.stringify(this.sessions));
+    }
 };
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
+// Load saved sessions on startup
+localDB.loadSessions();
         
         // DOM Elements
         const authContainer = document.getElementById('auth-container');
