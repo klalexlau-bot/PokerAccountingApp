@@ -120,22 +120,13 @@
     <h1>Poker Accounting App</h1>
     
     <div id="auth-container">
-        <div id="login-container">
-            <h2>Login</h2>
-            <input type="email" id="login-email" placeholder="Email" required><br>
-            <input type="password" id="login-password" placeholder="Password" required><br>
-            <button id="login-button">Login</button>
-            <p>Don't have an account? <a href="#" id="show-register">Register</a></p>
-        </div>
-        
-        <div id="register-container" class="hidden">
-            <h2>Register</h2>
-            <input type="email" id="register-email" placeholder="Email" required><br>
-            <input type="password" id="register-password" placeholder="Password" required><br>
-            <button id="register-button">Register</button>
-            <p>Already have an account? <a href="#" id="show-login">Login</a></p>
-        </div>
+    <div id="pin-container">
+        <h2>Enter PIN</h2>
+        <input type="password" id="pin-input" placeholder="Enter 4-digit PIN" maxlength="4" pattern="[0-9]*" inputmode="numeric" required><br>
+        <button id="pin-login-button">Login</button>
+        <p id="pin-error" style="color: red; display: none;">Incorrect PIN. Try again.</p>
     </div>
+</div>
     
     <div id="app-container" class="hidden">
         <button id="logout-button">Logout</button>
