@@ -8,6 +8,9 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
     <style>
+        .hidden {
+    display: none !important;
+}
         body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
@@ -127,7 +130,27 @@
         <p id="pin-error" style="color: red; display: none;">Incorrect PIN. Try again.</p>
     </div>
 </div>
-    
+    <button id="skip-login" style="margin-top: 10px; background-color: #888;">Skip Login (Testing Only)</button>
+
+<script>
+// Add this to your JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    const skipButton = document.getElementById('skip-login');
+    if (skipButton) {
+        skipButton.addEventListener('click', function() {
+            console.log("Skipping login");
+            document.getElementById('auth-container').classList.add('hidden');
+            document.getElementById('app-container').classList.remove('hidden');
+            localStorage.setItem('isLoggedIn', 'true');
+            try {
+                loadSessionHistory();
+            } catch (e) {
+                console.error("Error loading sessions:", e);
+            }
+        });
+    }
+});
+</script>
     <div id="app-container" class="hidden">
         <button id="logout-button">Logout</button>
         
@@ -765,5 +788,76 @@ localDB.loadSessions();
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('sessionDate').value = today;
     </script>
-</body>
+</body><script>
+// Ensure DOM is fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM fully loaded");
+    
+    // Check if PIN elements exist
+    const pinInput = document.getElementById('pin-input');
+    const pinLoginButton = document.getElementById('pin-login-button');
+    
+    if (!pinInput) {
+        console.error("PIN input field not found!");
+    } else {
+        console.log("PIN input field found");
+    }
+    
+    if (!pinLoginButton) {
+        console.error("PIN login button not found!");
+    } else {
+        console.log("PIN login button found");
+        
+        // Add direct click handler to the button
+        pinLoginButton.addEventListener('click', function() {
+            console.log("PIN button clicked");
+            const enteredPin = pinInput.value;
+            console.log("Entered PIN:", enteredPin);
+            
+            if (enteredPin === "1234") {
+                console.log("PIN correct, logging in");
+                localStorage.setItem('isLoggedIn', 'true');
+                document.getElementById('auth-container').classList.add('hidden');
+                document.getElementById('app-container').classList.remove('hidden');
+                document.getElementById('pin-error').style.display = 'none';
+                pinInput.value = '';
+                
+                // Try to load session history
+                try {
+                    loadSessionHistory();
+                } catch (e) {
+                    console.error("Error loading sessions:", e);
+                }
+            } else {
+                console.log("Incorrect PIN");
+                document.getElementById('pin-error').style.display = 'block';
+                pinInput.value = '';
+            }
+        });
+        
+        // Also allow Enter key to submit the PIN
+        pinInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                pinLoginButton.click();
+            }
+        });
+    }
+    
+    // Check if already logged in
+    if (localStorage.getItem('isLoggedIn') === 'true') {
+        console.log("Already logged in, showing app");
+        document.getElementById('auth-container').classList.add('hidden');
+        document.getElementById('app-container').classList.remove('hidden');
+        try {
+            loadSessionHistory();
+        } catch (e) {
+            console.error("Error loading sessions:", e);
+        }
+    } else {
+        console.log("Not logged in, showing auth screen");
+        document.getElementById('auth-container').classList.remove('hidden');
+        document.getElementById('app-container').classList.add('hidden');
+    }
+});
+</script>
 </html>
