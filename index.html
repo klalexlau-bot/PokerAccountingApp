@@ -376,7 +376,7 @@
       right: 0;
       bottom: 0;
       background-color: rgba(0, 0, 0, 0.7);
-      z-index: 1000;
+      z-index: ;
       justify-content: center;
       align-items: center;
     }
@@ -673,7 +673,7 @@
       </div>
       <div class="form-group">
         <label for="new-player-buyin">Initial Buy-in ($)</label>
-        <input type="number" id="new-player-buyin" value="1000">
+        <input type="number" id="new-player-buyin" value="">
       </div>
       <div class="modal-footer">
         <button class="button-secondary close-modal">Cancel</button>
@@ -698,7 +698,7 @@
       </div>
       <div class="form-group">
         <label for="adjustment-amount">Amount ($)</label>
-        <input type="number" id="adjustment-amount" value="1000">
+        <input type="number" id="adjustment-amount" value="">
       </div>
       <div class="modal-footer">
         <button class="button-secondary close-modal">Cancel</button>
@@ -817,7 +817,7 @@
     // Add Player
     addPlayerBtn.addEventListener('click', () => {
       newPlayerName.value = '';
-      newPlayerBuyin.value = '1000';
+      newPlayerBuyin.value = '';
       addPlayerModal.style.display = 'flex';
       newPlayerName.focus();
     });
@@ -858,7 +858,7 @@
     function openAdjustChipsModal(playerId) {
       state.activePlayer = playerId;
       adjustmentType.value = 'buyin';
-      adjustmentAmount.value = '1000';
+      adjustmentAmount.value = '';
       adjustChipsModal.style.display = 'flex';
       adjustmentAmount.focus();
     }
@@ -911,12 +911,17 @@
       let levyAmount = 0;
       let calculationText = '';
       
-      if (winnings > 1000) {
-        const taxableWinnings = winnings - 1000;
-        levyAmount = Math.ceil((taxableWinnings * 0.05) / 10) * 10; // 5% rounded up to nearest $10
-        
-        calculationText = `
-          <p>Calculation: 5% of $(${winnings} - $1,000) = $${(taxableWinnings * 0.05).toFixed(2)}</p>
+      if (winnings >= 1000) {
+    const taxableWinnings = winnings; // The entire amount is taxable
+    levyAmount = Math.ceil((taxableWinnings * 0.05) / 10) * 10; // 5% rounded up to nearest $10
+    
+    calculationText = `
+      <p>Calculation: 5% of $${winnings} = $${(taxableWinnings * 0.05).toFixed(2)}</p>
+      <p>Rounded up to nearest $10: $${levyAmount}</p>
+    `;
+} else {
+    calculationText = '<p>No levy is applied on winnings less than $1,000.</p>';
+}
           <p>Rounded up to nearest $10: $${levyAmount}</p>
         `;
       } else {
@@ -925,7 +930,7 @@
       
       // Update UI
       totalWinnings.textContent = `$${winnings.toFixed(2)}`;
-      taxableAmount.textContent = winnings > 1000 ? `$${(winnings - 1000).toFixed(2)}` : '$0.00';
+      taxableAmount.textContent = winnings >  ? `$${(winnings - ).toFixed(2)}` : '$0.00';
       levyDue.textContent = `$${levyAmount.toFixed(2)}`;
       levyCalculation.innerHTML = calculationText;
       renderLevyPlayers();
@@ -1284,8 +1289,8 @@
       
       try {
         await db.collection('players').doc(playerId).update({
-          buyins: player.buyins + 1000,
-          currentChips: player.currentChips + 1000
+          buyins: player.buyins + ,
+          currentChips: player.currentChips + 
         });
         
         showNotification(`Added $1,000 buy-in for ${player.name}`, 'success');
