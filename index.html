@@ -38,7 +38,7 @@
             const [houseRake, setHouseRake] = useState(0);
             const [entitledPlayers, setEntitledPlayers] = useState([]);
             
-            // Standalone Calc State
+            // Per Round Helper State
             const [potSize, setPotSize] = useState("");
 
             useEffect(() => {
@@ -46,11 +46,12 @@
                 localStorage.setItem('cs_expenses_vfinal', JSON.stringify(expenses));
             }, [players, expenses]);
 
-            // --- CALCULATOR LOGIC ---
+            // --- CORRECTED CALCULATOR LOGIC ---
             const suggestedLevy = useMemo(() => {
                 const pot = parseFloat(potSize) || 0;
-                if (pot <= 1000) return 0;
-                return Math.ceil((pot * 0.05) / 10) * 10;
+                // Rule: Below 1000 is exempt. 1000 and above = 5%
+                if (pot < 1000) return 0;
+                return pot * 0.05; 
             }, [potSize]);
 
             // --- ACTIONS ---
@@ -133,9 +134,9 @@
                 <div className="max-w-md mx-auto p-4 min-h-screen pb-20">
                     <header className="flex justify-between items-center mb-8 pt-4">
                         <h1 className="font-black text-orange-500 tracking-tighter text-3xl italic">CARDS & SMOKE</h1>
-                        <div className="flex bg-gray-800 rounded-xl p-1 shadow-inner">
-                            <button onClick={() => setView('manage')} className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${view === 'manage' ? 'bg-orange-600 text-white' : 'text-gray-500'}`}>Setup</button>
-                            <button onClick={() => setView('tally')} className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${view === 'tally' ? 'bg-orange-600 text-white' : 'text-gray-500'}`}>Tally</button>
+                        <div className="flex bg-gray-800 rounded-xl p-1">
+                            <button onClick={() => setView('manage')} className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest ${view === 'manage' ? 'bg-orange-600' : 'text-gray-500'}`}>Setup</button>
+                            <button onClick={() => setView('tally')} className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest ${view === 'tally' ? 'bg-orange-600' : 'text-gray-500'}`}>Tally</button>
                         </div>
                     </header>
 
@@ -144,7 +145,7 @@
                             {players.map(p => (
                                 <div key={p.id} className="bg-gray-800 p-5 rounded-2xl border border-gray-700">
                                     <div className="flex justify-between items-center mb-4">
-                                        <input className="bg-transparent font-black text-white text-xl outline-none w-3/4 focus:border-b-2 border-orange-500" value={p.name} onChange={e => updatePlayer(p.id, 'name', e.target.value)} />
+                                        <input className="bg-transparent font-black text-white text-xl outline-none w-3/4 focus:border-b border-orange-500" value={p.name} onChange={e => updatePlayer(p.id, 'name', e.target.value)} />
                                         <button onClick={() => removePlayer(p.id)} className="text-gray-600 hover:text-red-500 text-xl font-bold">✕</button>
                                     </div>
                                     <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Total Buy-In</label>
@@ -155,41 +156,42 @@
                         </div>
                     ) : (
                         <div className="space-y-6">
-                            {/* STANDALONE CALCULATOR */}
+                            {/* UPDATED CALCULATOR */}
                             <section className="bg-orange-900/10 p-5 rounded-2xl border-2 border-orange-500/20">
                                 <h3 className="text-[10px] font-black text-orange-500 mb-3 uppercase tracking-widest">Per Round Levy Helper</h3>
                                 <div className="flex gap-3 items-center">
-                                    <input type="number" placeholder="Enter Pot Size" className="bg-gray-900 p-3 rounded-xl flex-1 text-sm outline-none ring-1 ring-gray-700 focus:ring-orange-500" value={potSize} onChange={e => setPotSize(e.target.value)} />
+                                    <input type="number" placeholder="Pot Size" className="bg-gray-900 p-3 rounded-xl flex-1 text-sm outline-none ring-1 ring-gray-700 focus:ring-orange-500" value={potSize} onChange={e => setPotSize(e.target.value)} />
                                     <div className="text-right">
                                         <span className="text-[8px] text-gray-500 uppercase block">Collect</span>
-                                        <span className="text-xl font-black text-white">${suggestedLevy}</span>
+                                        <span className={`text-xl font-black ${suggestedLevy > 0 ? 'text-white' : 'text-gray-700'}`}>${suggestedLevy}</span>
                                     </div>
                                 </div>
+                                {potSize && parseFloat(potSize) < 1000 && (
+                                    <p className="text-[9px] text-gray-500 mt-2 italic">* Exempt (Below $1,000)</p>
+                                )}
                             </section>
 
-                            {/* CHIP COUNT */}
                             <section className="bg-gray-800 p-5 rounded-2xl border border-gray-700">
-                                <h3 className="text-[10px] font-black text-gray-500 mb-4 uppercase tracking-widest">Final Chip Counts</h3>
+                                <h3 className="text-[10px] font-black text-gray-400 mb-4 uppercase tracking-widest">Final Chip Counts</h3>
                                 {players.map(p => (
                                     <div key={p.id} className="flex items-center justify-between mb-3 last:mb-0">
                                         <div className="flex flex-col">
                                             <span className="text-sm font-black">{p.name}</span>
                                             <span className="text-[9px] text-gray-500 font-bold uppercase tracking-tighter">Paid In: ${p.buyIn}</span>
                                         </div>
-                                        <input type="number" className="bg-gray-900 p-3 w-28 rounded-xl text-right font-mono text-green-400 font-bold outline-none ring-1 ring-gray-700 focus:ring-green-500" value={p.chips} onChange={e => updatePlayer(p.id, 'chips', parseInt(e.target.value) || 0)} />
+                                        <input type="number" className="bg-gray-900 p-3 w-28 rounded-xl text-right font-mono text-green-400 font-bold outline-none" value={p.chips} onChange={e => updatePlayer(p.id, 'chips', parseInt(e.target.value) || 0)} />
                                     </div>
                                 ))}
                             </section>
 
-                            {/* COMMUNITY POT */}
                             <section className="bg-gray-800 p-5 rounded-2xl border-l-4 border-green-500">
                                 <h3 className="text-[10px] font-black text-green-500 mb-4 uppercase tracking-widest">Community Pot Distribution</h3>
                                 <div className="grid grid-cols-2 gap-3 mb-4">
-                                    <div className="space-y-1">
+                                    <div>
                                         <label className="text-[8px] text-gray-500 uppercase font-black">Total Pot</label>
                                         <input type="number" className="bg-gray-900 p-3 w-full rounded-xl text-sm font-bold" value={totalCommPot} onChange={e => setTotalCommPot(parseFloat(e.target.value) || 0)} />
                                     </div>
-                                    <div className="space-y-1">
+                                    <div>
                                         <label className="text-[8px] text-gray-500 uppercase font-black">House Rake</label>
                                         <input type="number" className="bg-gray-900 p-3 w-full rounded-xl text-sm font-bold" value={houseRake} onChange={e => setHouseRake(parseFloat(e.target.value) || 0)} />
                                     </div>
@@ -204,22 +206,21 @@
                                 </div>
                             </section>
 
-                            {/* EXPENSES */}
                             <section className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Shared Expenses</h3>
+                                <div className="flex justify-between items-center px-1">
+                                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Shared Expenses</h3>
                                     <button onClick={addExpense} className="text-blue-500 text-[10px] font-black">+ ADD ITEM</button>
                                 </div>
                                 {expenses.map(exp => (
                                     <div key={exp.id} className="bg-gray-800 p-5 rounded-2xl border border-gray-700">
                                         <div className="flex gap-2 mb-4">
                                             <input placeholder="Label" className="bg-gray-900 p-3 rounded-xl flex-1 text-xs font-bold" value={exp.label} onChange={e => updateExpense(exp.id, 'label', e.target.value)} />
-                                            <input type="number" placeholder="$" className="bg-gray-900 p-3 rounded-xl w-24 text-right font-mono" value={exp.amount} onChange={e => updateExpense(exp.id, 'amount', parseFloat(e.target.value) || 0)} />
+                                            <input type="number" className="bg-gray-900 p-3 rounded-xl w-24 text-right font-mono font-bold" value={exp.amount} onChange={e => updateExpense(exp.id, 'amount', parseFloat(e.target.value) || 0)} />
                                         </div>
                                         <div className="flex flex-wrap gap-1">
                                             {players.map(p => (
                                                 <button key={p.id} onClick={() => toggleExpensePayer(exp.id, p.id)}
-                                                    className={`text-[9px] font-black px-3 py-2 rounded-lg border transition-all ${exp.payers.includes(p.id) ? 'bg-blue-600 border-blue-400' : 'bg-gray-900 border-gray-700 text-gray-600'}`}>
+                                                    className={`text-[9px] font-black px-3 py-2 rounded-lg border transition-all ${exp.payers.includes(p.id) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-gray-900 border-gray-700 text-gray-600'}`}>
                                                     {p.name}
                                                 </button>
                                             ))}
@@ -228,19 +229,18 @@
                                 ))}
                             </section>
 
-                            {/* SETTLEMENT */}
                             {!showSettlement ? (
                                 <button onClick={() => setShowSettlement(true)} className="w-full bg-green-600 p-5 rounded-2xl font-black tracking-widest text-sm shadow-xl shadow-green-900/30 uppercase">Reveal Final Payouts</button>
                             ) : (
                                 <div className="bg-white text-gray-900 p-6 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-300">
-                                    <h3 className="text-[10px] font-black text-gray-400 mb-6 uppercase tracking-[0.3em] text-center font-bold">Final Settlement</h3>
+                                    <h3 className="text-[10px] font-black text-gray-400 mb-6 uppercase tracking-[0.3em] text-center">Final Settlement</h3>
                                     <div className="space-y-4">
                                         {settlements.length > 0 ? settlements.map((s, i) => (
                                             <div key={i} className="flex justify-between items-center border-b border-gray-100 pb-3 last:border-0 last:pb-0">
-                                                <div className="flex flex-col"><span className="text-sm font-black uppercase">{s.from}</span><span className="text-[8px] font-bold text-gray-400">PAYS {s.to}</span></div>
+                                                <div className="flex flex-col"><span className="text-sm font-black uppercase">{s.from}</span><span className="text-[8px] font-bold text-gray-400 tracking-widest uppercase">Pays to {s.to}</span></div>
                                                 <span className="font-black text-2xl text-green-600 tracking-tighter">${s.amount}</span>
                                             </div>
-                                        )) : <p className="text-center italic text-gray-400 py-4">Perfectly Balanced.</p>}
+                                        )) : <p className="text-center italic text-gray-400 py-4 font-bold">Square.</p>}
                                     </div>
                                     <button onClick={() => setShowSettlement(false)} className="mt-8 w-full text-[10px] font-black text-gray-300 uppercase tracking-widest text-center border-t border-gray-100 pt-4">Back to Edits</button>
                                 </div>
