@@ -8,39 +8,42 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
 </head>
-<body class="bg-gray-900 text-gray-100 font-sans">
+<body class="bg-gray-900 text-gray-100">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
         function App() {
-            const [view, setView] = useState('manage');
+            const [view, setView] = useState('manage'); // 'manage' or 'tally'
             const [showSettlement, setShowSettlement] = useState(false);
             
-            // --- DATA PERSISTENCE ---
+            // --- PERSISTENCE (LocalStorage v5) ---
             const [players, setPlayers] = useState(() => {
-                const saved = localStorage.getItem('cs_players_v4');
+                const saved = localStorage.getItem('cs_players_v5');
                 return saved ? JSON.parse(saved) : [{ id: Date.now(), name: "Alex", buyIn: 5000, chips: 0 }];
             });
 
             const [expenses, setExpenses] = useState(() => {
-                const saved = localStorage.getItem('cs_expenses_v4');
+                const saved = localStorage.getItem('cs_expenses_v5');
                 return saved ? JSON.parse(saved) : [];
             });
 
-            // Community Pot State (Manual Inputs)
             const [totalCommPot, setTotalCommPot] = useState(0);
             const [houseRake, setHouseRake] = useState(0);
             const [entitledPlayers, setEntitledPlayers] = useState([]);
 
             useEffect(() => {
-                localStorage.setItem('cs_players_v4', JSON.stringify(players));
-                localStorage.setItem('cs_expenses_v4', JSON.stringify(expenses));
+                localStorage.setItem('cs_players_v5', JSON.stringify(players));
+                localStorage.setItem('cs_expenses_v5', JSON.stringify(expenses));
             }, [players, expenses]);
 
-            // --- ACTIONS ---
+            // --- PLAYER ACTIONS ---
             const addPlayer = () => {
                 setPlayers([...players, { id: Date.now(), name: `Seat ${players.length + 1}`, buyIn: 5000, chips: 0 }]);
             };
@@ -53,6 +56,7 @@
                 if (players.length > 1) setPlayers(players.filter(p => p.id !== id));
             };
 
+            // --- EXPENSE ACTIONS ---
             const addExpense = () => {
                 setExpenses([...expenses, { id: Date.now(), label: "", amount: 0, payers: [] }]);
             };
@@ -72,7 +76,7 @@
             };
 
             const totalRefresh = () => {
-                if (window.confirm("TOTAL REFRESH: Reset everything to 'Alex'?")) {
+                if (window.confirm("TOTAL REFRESH: This will wipe all data and reset to 'Alex'. Proceed?")) {
                     setPlayers([{ id: Date.now(), name: "Alex", buyIn: 5000, chips: 0 }]);
                     setExpenses([]);
                     setTotalCommPot(0);
@@ -89,12 +93,12 @@
                 return players.map(p => {
                     let net = p.chips - p.buyIn;
                     
-                    // ADD Community Pot Dividend (Positive Addition)
+                    // ADD Community Pot Dividend (Manual Selection)
                     if (entitledPlayers.includes(p.id) && entitledPlayers.length > 0) {
                         net += (distributablePot / entitledPlayers.length);
                     }
 
-                    // SUBTRACT Expense shares (Negative Deduction)
+                    // SUBTRACT Expense shares
                     expenses.forEach(exp => {
                         if (exp.payers.includes(p.id) && exp.payers.length > 0) {
                             net -= (exp.amount / exp.payers.length);
@@ -125,60 +129,72 @@
             }, [results, showSettlement]);
 
             return (
-                <div className="max-w-md mx-auto p-4 min-h-screen">
-                    <header className="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
-                        <h1 className="font-black text-orange-500 tracking-tighter text-2xl">CARDS & SMOKE</h1>
-                        <div className="flex bg-gray-800 rounded-lg p-1">
-                            <button onClick={() => setView('manage')} className={`px-4 py-1 rounded-md text-xs font-bold ${view === 'manage' ? 'bg-orange-600' : ''}`}>SETUP</button>
-                            <button onClick={() => setView('tally')} className={`px-4 py-1 rounded-md text-xs font-bold ${view === 'tally' ? 'bg-orange-600' : ''}`}>TALLY</button>
+                <div className="max-w-md mx-auto p-4 min-h-screen pb-20">
+                    <header className="flex justify-between items-center mb-8 pt-4">
+                        <h1 className="font-black text-orange-500 tracking-tighter text-3xl italic">CARDS & SMOKE</h1>
+                        <div className="flex bg-gray-800 rounded-xl p-1 shadow-inner">
+                            <button onClick={() => setView('manage')} className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${view === 'manage' ? 'bg-orange-600 text-white shadow-lg' : 'text-gray-500'}`}>Setup</button>
+                            <button onClick={() => setView('tally')} className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${view === 'tally' ? 'bg-orange-600 text-white shadow-lg' : 'text-gray-500'}`}>Tally</button>
                         </div>
                     </header>
 
                     {view === 'manage' ? (
-                        <div className="space-y-3">
+                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                             {players.map(p => (
-                                <div key={p.id} className="bg-gray-800 p-4 rounded-xl border border-gray-700">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <input className="bg-transparent font-bold text-white text-lg outline-none w-3/4 border-b border-transparent focus:border-orange-500" value={p.name} onChange={e => updatePlayer(p.id, 'name', e.target.value)} />
-                                        <button onClick={() => removePlayer(p.id)} className="text-gray-500 hover:text-red-500">✕</button>
+                                <div key={p.id} className="bg-gray-800 p-5 rounded-2xl border border-gray-700 shadow-xl">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <input className="bg-transparent font-black text-white text-xl outline-none w-3/4 border-b-2 border-transparent focus:border-orange-500 transition-colors" value={p.name} onChange={e => updatePlayer(p.id, 'name', e.target.value)} placeholder="Player Name" />
+                                        <button onClick={() => removePlayer(p.id)} className="text-gray-600 hover:text-red-500 transition-colors">✕</button>
                                     </div>
-                                    <label className="text-[10px] text-gray-500 uppercase font-black">Total Buy-In</label>
-                                    <input type="number" className="bg-gray-900 w-full p-3 rounded-lg mt-1 font-mono text-orange-400" value={p.buyIn} onChange={e => updatePlayer(p.id, 'buyIn', parseInt(e.target.value) || 0)} />
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Initial + Add-on Buy-ins</label>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-2 text-orange-500 font-bold">$</span>
+                                            <input type="number" className="bg-gray-900 w-full p-3 pl-8 rounded-xl font-mono text-lg text-white outline-none focus:ring-2 ring-orange-500/50" value={p.buyIn} onChange={e => updatePlayer(p.id, 'buyIn', parseInt(e.target.value) || 0)} />
+                                        </div>
+                                    </div>
                                 </div>
                             ))}
-                            <button onClick={addPlayer} className="w-full border-2 border-dashed border-gray-700 p-4 rounded-xl text-gray-500 font-bold hover:bg-gray-800">+ Add New Seat</button>
+                            <button onClick={addPlayer} className="w-full border-2 border-dashed border-gray-800 p-5 rounded-2xl text-gray-600 font-black uppercase tracking-widest hover:border-orange-500/50 hover:text-orange-500/50 transition-all">+ Add Player</button>
                         </div>
                     ) : (
-                        <div className="space-y-6">
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                             {/* 1. CHIP COUNT */}
-                            <section className="bg-gray-800 p-4 rounded-xl">
-                                <h3 className="text-[10px] font-black text-gray-400 mb-4 uppercase tracking-widest">Final Chip Counts</h3>
-                                {players.map(p => (
-                                    <div key={p.id} className="flex items-center justify-between mb-3 last:mb-0">
-                                        <span className="text-sm font-bold">{p.name} <span className="text-gray-500 font-normal ml-1">(${p.buyIn})</span></span>
-                                        <input type="number" className="bg-gray-900 p-2 w-24 rounded-lg text-right font-mono text-green-400" value={p.chips} onChange={e => updatePlayer(p.id, 'chips', parseInt(e.target.value) || 0)} />
-                                    </div>
-                                ))}
+                            <section className="bg-gray-800 p-5 rounded-2xl border border-gray-700">
+                                <h3 className="text-[10px] font-black text-gray-500 mb-5 uppercase tracking-[0.2em]">Final Chip Counts</h3>
+                                <div className="space-y-4">
+                                    {players.map(p => (
+                                        <div key={p.id} className="flex items-center justify-between group">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-black text-white">{p.name}</span>
+                                                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter">Paid In: ${p.buyIn}</span>
+                                            </div>
+                                            <input type="number" placeholder="0" className="bg-gray-900 p-3 w-28 rounded-xl text-right font-mono text-green-400 font-bold outline-none focus:ring-2 ring-green-500/30" value={p.chips} onChange={e => updatePlayer(p.id, 'chips', parseInt(e.target.value) || 0)} />
+                                        </div>
+                                    ))}
+                                </div>
                             </section>
 
-                            {/* 2. COMMUNITY POT DIVIDEND */}
-                            <section className="bg-gray-800 p-4 rounded-xl border-l-4 border-green-500">
-                                <h3 className="text-[10px] font-black text-green-500 mb-3 uppercase tracking-widest">Community Pot Distribution</h3>
-                                <div className="grid grid-cols-2 gap-2 mb-3">
-                                    <div>
-                                        <label className="text-[8px] text-gray-500 uppercase">Total Pot</label>
-                                        <input type="number" className="bg-gray-900 p-2 w-full rounded-lg text-sm" value={totalCommPot} onChange={e => setTotalCommPot(parseFloat(e.target.value) || 0)} />
+                            {/* 2. COMMUNITY POT */}
+                            <section className="bg-gray-800 p-5 rounded-2xl border-l-4 border-green-500 shadow-lg">
+                                <h3 className="text-[10px] font-black text-green-500 mb-4 uppercase tracking-[0.2em]">Community Pot (Dividends)</h3>
+                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[8px] text-gray-500 uppercase font-black">Total Pot</label>
+                                        <input type="number" className="bg-gray-900 p-3 w-full rounded-xl text-sm font-bold outline-none" value={totalCommPot} onChange={e => setTotalCommPot(parseFloat(e.target.value) || 0)} />
                                     </div>
-                                    <div>
-                                        <label className="text-[8px] text-gray-500 uppercase">House Rake</label>
-                                        <input type="number" className="bg-gray-900 p-2 w-full rounded-lg text-sm" value={houseRake} onChange={e => setHouseRake(parseFloat(e.target.value) || 0)} />
+                                    <div className="space-y-1">
+                                        <label className="text-[8px] text-gray-500 uppercase font-black">House Rake</label>
+                                        <input type="number" className="bg-gray-900 p-3 w-full rounded-xl text-sm font-bold outline-none" value={houseRake} onChange={e => setHouseRake(parseFloat(e.target.value) || 0)} />
                                     </div>
                                 </div>
-                                <p className="text-xs text-gray-400 mb-3 italic">Net to share: <span className="text-white font-bold">${distributablePot}</span></p>
+                                <div className="bg-gray-900/50 p-3 rounded-xl mb-4 border border-gray-700">
+                                    <p className="text-[10px] text-gray-500 uppercase font-bold text-center">Remaining to Distribute: <span className="text-white text-sm ml-1">${distributablePot}</span></p>
+                                </div>
                                 <div className="flex flex-wrap gap-2">
                                     {players.map(p => (
                                         <button key={p.id} onClick={() => entitledPlayers.includes(p.id) ? setEntitledPlayers(entitledPlayers.filter(i => i !== p.id)) : setEntitledPlayers([...entitledPlayers, p.id])}
-                                            className={`text-[9px] px-3 py-1 rounded-full border transition-all ${entitledPlayers.includes(p.id) ? 'bg-green-600 border-green-400' : 'bg-gray-700 border-gray-600 text-gray-500'}`}>
+                                            className={`text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-full border transition-all duration-200 ${entitledPlayers.includes(p.id) ? 'bg-green-600 border-green-400 text-white shadow-lg' : 'bg-gray-900 border-gray-700 text-gray-600'}`}>
                                             {p.name}
                                         </button>
                                     ))}
@@ -186,5 +202,59 @@
                             </section>
 
                             {/* 3. EXPENSES */}
-                            <section className="space-y-2">
-                                <div className="flex
+                            <section className="space-y-3">
+                                <div className="flex justify-between items-center px-1">
+                                    <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Shared Expenses</h3>
+                                    <button onClick={addExpense} className="text-blue-500 text-[10px] font-black uppercase tracking-widest">+ Add Line</button>
+                                </div>
+                                {expenses.map(exp => (
+                                    <div key={exp.id} className="bg-gray-800 p-5 rounded-2xl border border-gray-700 animate-in zoom-in-95 duration-200">
+                                        <div className="flex gap-2 mb-4">
+                                            <input placeholder="Label (Pizza, Beer...)" className="bg-gray-900 p-3 rounded-xl flex-1 text-xs font-bold outline-none border border-transparent focus:border-blue-500" value={exp.label} onChange={e => updateExpense(exp.id, 'label', e.target.value)} />
+                                            <input type="number" placeholder="$" className="bg-gray-900 p-3 rounded-xl w-24 text-right font-mono font-bold" value={exp.amount} onChange={e => updateExpense(exp.id, 'amount', parseFloat(e.target.value) || 0)} />
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {players.map(p => (
+                                                <button key={p.id} onClick={() => toggleExpensePayer(exp.id, p.id)}
+                                                    className={`text-[9px] font-black uppercase tracking-widest px-3 py-2 rounded-lg border transition-all ${exp.payers.includes(p.id) ? 'bg-blue-600 border-blue-400 text-white shadow-md' : 'bg-gray-900 border-gray-700 text-gray-600'}`}>
+                                                    {p.name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </section>
+
+                            {/* 4. SETTLEMENT */}
+                            {!showSettlement ? (
+                                <button onClick={() => setShowSettlement(true)} className="w-full bg-gradient-to-r from-green-600 to-emerald-600 p-5 rounded-2xl font-black tracking-[0.2em] text-sm shadow-xl shadow-green-900/30 uppercase transform active:scale-95 transition-transform">Calculate Payouts</button>
+                            ) : (
+                                <div className="bg-white text-gray-900 p-6 rounded-3xl shadow-2xl animate-in fade-in zoom-in-95 duration-300">
+                                    <h3 className="text-[10px] font-black text-gray-400 mb-6 uppercase tracking-[0.3em] text-center">Final Settlements</h3>
+                                    <div className="space-y-4">
+                                        {settlements.length > 0 ? settlements.map((s, i) => (
+                                            <div key={i} className="flex justify-between items-center border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-black text-gray-800 uppercase tracking-tight">{s.from}</span>
+                                                    <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Pays to {s.to}</span>
+                                                </div>
+                                                <span className="font-black text-2xl text-green-600 tracking-tighter">${s.amount}</span>
+                                            </div>
+                                        )) : <p className="text-center italic text-gray-400 py-4">The bank is balanced.</p>}
+                                    </div>
+                                    <button onClick={() => setShowSettlement(false)} className="mt-8 w-full text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] py-2 border-t border-gray-50">Back to adjustments</button>
+                                </div>
+                            )}
+
+                            <button onClick={totalRefresh} className="w-full text-red-900/50 font-black text-[10px] uppercase py-12 tracking-[0.4em] hover:text-red-600 transition-colors">Total Reset App</button>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
