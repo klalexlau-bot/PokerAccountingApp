@@ -3,182 +3,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cards & Smoke | Poker Ledger</title>
+    <title>Cards & Smoke | Local Ledger</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen">
+<body class="bg-gray-900 text-gray-100">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        // --- FIREBASE INITIALIZATION ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyBVtypWYLHnlpjQcVdcr-01mEbWc7erDH4",
-            authDomain: "pokeraccountingapp.firebaseapp.com",
-            projectId: "pokeraccountingapp",
-            storageBucket: "pokeraccountingapp.firebasestorage.app",
-            messagingSenderId: "453989055970",
-            appId: "1:453989055970:web:ea1bfc38ef564b38d94dbb"
-        };
-
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const db = firebase.firestore();
-
-        function CardsAndSmoke() {
+        function App() {
             const [view, setView] = useState('manage');
-            const [players, setPlayers] = useState([{ id: Date.now().toString(), name: "Seat 1", buyIn: 5000, chips: 0 }]);
+            const [showSettlement, setShowSettlement] = useState(false);
             
-            // Standalone Local Levy Helper
-            const [potSize, setPotSize] = useState("");
-            const [calcLevy, setCalcLevy] = useState(0);
+            // --- DATA PERSISTENCE (LocalStorage) ---
+            const [players, setPlayers] = useState(() => {
+                const saved = localStorage.getItem('poker_players');
+                return saved ? JSON.parse(saved) : [{ id: Date.now(), name: "Seat 1", buyIn: 5000, chips: 0 }];
+            });
 
-            // Manual Tally State
+            useEffect(() => {
+                localStorage.setItem('poker_players', JSON.stringify(players));
+            }, [players]);
+
+            // --- TALLY STATE ---
+            const [potSize, setPotSize] = useState("");
             const [manualLevyTotal, setManualLevyTotal] = useState(0);
             const [selectedForLevy, setSelectedForLevy] = useState([]);
 
-            // Sync with Firebase on Load
-            useEffect(() => {
-                const unsubscribe = db.collection("games").doc("current-session")
-                    .onSnapshot((doc) => {
-                        if (doc.exists) {
-                            const data = doc.data();
-                            if (data.players) setPlayers(data.players);
-                        }
-                    });
-                return () => unsubscribe();
-            }, []);
-
-            // Save to Firebase helper
-            const saveToCloud = (newPlayers) => {
-                db.collection("games").doc("current-session").set({ players: newPlayers }, { merge: true });
-            };
-
-            // Calculate Levy Suggestion (Local Only)
-            useEffect(() => {
+            // Helper: Levy Calculator (Local UI only)
+            const suggestedLevy = useMemo(() => {
                 const pot = parseFloat(potSize) || 0;
-                if (pot > 1000) {
-                    const baseLevy = pot * 0.05;
-                    setCalcLevy(Math.ceil(baseLevy / 10) * 10);
-                } else { setCalcLevy(0); }
+                if (pot <= 1000) return 0;
+                return Math.ceil((pot * 0.05) / 10) * 10;
             }, [potSize]);
 
+            // --- ACTIONS ---
             const addPlayer = () => {
-                const newPlayers = [...players, { id: Date.now().toString(), name: `Player ${players.length + 1}`, buyIn: 5000, chips: 0 }];
-                setPlayers(newPlayers);
-                saveToCloud(newPlayers);
+                setPlayers([...players, { id: Date.now(), name: `Player ${players.length + 1}`, buyIn: 5000, chips: 0 }]);
             };
 
-            const updatePlayer = (id, field, value) => {
-                const newPlayers = players.map(p => p.id === id ? { ...p, [field]: value } : p);
-                setPlayers(newPlayers);
-                saveToCloud(newPlayers);
+            const updatePlayer = (id, field, val) => {
+                setPlayers(players.map(p => p.id === id ? { ...p, [field]: val } : p));
             };
 
-            const totalRefresh = async () => {
-                if (window.confirm("TOTAL REFRESH: Are you sure? This wipes all players and resets to Seat 1.")) {
-                    const resetState = [{ id: Date.now().toString(), name: "Seat 1", buyIn: 5000, chips: 0 }];
-                    setPlayers(resetState);
-                    setPotSize("");
+            const removePlayer = (id) => {
+                if (players.length > 1) setPlayers(players.filter(p => p.id !== id));
+            };
+
+            const totalRefresh = () => {
+                if (window.confirm("TOTAL REFRESH: Reset everything to Seat 1?")) {
+                    setPlayers([{ id: Date.now(), name: "Seat 1", buyIn: 5000, chips: 0 }]);
                     setManualLevyTotal(0);
                     setSelectedForLevy([]);
-                    await db.collection("games").doc("current-session").set({ players: resetState });
+                    setPotSize("");
+                    setShowSettlement(false);
                 }
             };
 
-            // SETTLEMENT ENGINE LOGIC
+            // --- SETTLEMENT ENGINE ---
             const settlements = useMemo(() => {
+                if (!showSettlement) return [];
+                
+                // Calculate Net for each player
                 const results = players.map(p => {
                     let net = p.chips - p.buyIn;
-                    // Subtract Levy share if selected
-                    if (selectedForLevy.includes(p.id) && selectedForLevy.length > 0) {
+                    if (selectedForLevy.includes(p.id)) {
                         net -= (manualLevyTotal / selectedForLevy.length);
                     }
                     return { name: p.name, net };
                 });
 
-                let debtors = results.filter(r => r.net < 0).map(r => ({ ...r, net: Math.abs(r.net) }));
-                let creditors = results.filter(r => r.net > 0).map(r => ({ ...r }));
-                const transactions = [];
+                let debtors = results.filter(r => r.net < -0.01).map(r => ({ ...r, net: Math.abs(r.net) }));
+                let creditors = results.filter(r => r.net > 0.01).map(r => ({ ...r }));
+                const trans = [];
 
                 debtors.forEach(d => {
                     creditors.forEach(c => {
                         if (d.net > 0 && c.net > 0) {
                             const amount = Math.min(d.net, c.net);
-                            transactions.push({ from: d.name, to: c.name, amount: amount.toFixed(0) });
+                            trans.push({ from: d.name, to: c.name, amount: amount.toFixed(0) });
                             d.net -= amount;
                             c.net -= amount;
                         }
                     });
                 });
-                return transactions;
-            }, [players, manualLevyTotal, selectedForLevy]);
+                return trans;
+            }, [showSettlement, players, manualLevyTotal, selectedForLevy]);
 
             return (
-                <div className="max-w-md mx-auto p-4 pb-24">
-                    <header className="flex justify-between items-center mb-6 border-b border-gray-700 pb-2">
-                        <h1 className="text-xl font-bold text-orange-500">CARDS & SMOKE</h1>
-                        <nav className="flex gap-4">
-                            <button onClick={() => setView('manage')} className={view === 'manage' ? 'text-white border-b-2 border-orange-500' : 'text-gray-500'}>Manage</button>
-                            <button onClick={() => setView('tally')} className={view === 'tally' ? 'text-white border-b-2 border-orange-500' : 'text-gray-500'}>Tally</button>
-                        </nav>
+                <div className="max-w-md mx-auto p-4 min-h-screen pb-20">
+                    <header className="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
+                        <h1 className="font-black text-orange-500 tracking-tighter text-2xl">CARDS & SMOKE</h1>
+                        <div className="flex bg-gray-800 rounded-lg p-1">
+                            <button onClick={() => setView('manage')} className={`px-4 py-1 rounded-md text-sm ${view === 'manage' ? 'bg-orange-600' : ''}`}>Play</button>
+                            <button onClick={() => setView('tally')} className={`px-4 py-1 rounded-md text-sm ${view === 'tally' ? 'bg-orange-600' : ''}`}>Tally</button>
+                        </div>
                     </header>
 
                     {view === 'manage' ? (
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             {players.map(p => (
-                                <div key={p.id} className="bg-gray-800 p-4 rounded-lg border border-gray-700 shadow-lg">
-                                    <input className="bg-transparent font-bold text-lg mb-2 block w-full focus:text-orange-400 outline-none" value={p.name} onChange={(e) => updatePlayer(p.id, 'name', e.target.value)} />
-                                    <div className="flex gap-4">
-                                        <div className="flex-1"><label className="text-[10px] text-gray-400 uppercase">Buy-In</label>
-                                        <input type="number" className="bg-gray-700 w-full p-2 rounded" value={p.buyIn} onChange={(e) => updatePlayer(p.id, 'buyIn', parseInt(e.target.value) || 0)} /></div>
-                                        <div className="flex-1"><label className="text-[10px] text-gray-400 uppercase">Chips</label>
-                                        <input type="number" className="bg-gray-700 w-full p-2 rounded" value={p.chips} onChange={(e) => updatePlayer(p.id, 'chips', parseInt(e.target.value) || 0)} /></div>
+                                <div key={p.id} className="bg-gray-800 p-4 rounded-xl border border-gray-700 relative">
+                                    <button onClick={() => removePlayer(p.id)} className="absolute top-2 right-2 text-gray-500 hover:text-red-500">✕</button>
+                                    <input className="bg-transparent font-bold text-white mb-3 outline-none focus:text-orange-400 w-4/5" value={p.name} onChange={e => updatePlayer(p.id, 'name', e.target.value)} />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-[10px] text-gray-500 uppercase font-bold">Buy-In</label>
+                                            <input type="number" className="bg-gray-900 w-full p-2 rounded" value={p.buyIn} onChange={e => updatePlayer(p.id, 'buyIn', parseInt(e.target.value) || 0)} />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] text-gray-500 uppercase font-bold">Chips</label>
+                                            <input type="number" className="bg-gray-900 w-full p-2 rounded" value={p.chips} onChange={e => updatePlayer(p.id, 'chips', parseInt(e.target.value) || 0)} />
+                                        </div>
                                     </div>
                                 </div>
                             ))}
-                            <button onClick={addPlayer} className="w-full bg-orange-600 hover:bg-orange-500 p-3 rounded-xl font-bold transition-colors">ADD PLAYER</button>
+                            <button onClick={addPlayer} className="w-full border-2 border-dashed border-gray-700 p-4 rounded-xl text-gray-500 font-bold hover:bg-gray-800">+ Add Seat</button>
                         </div>
                     ) : (
                         <div className="space-y-6">
-                            <div className="bg-gray-800 p-4 rounded-lg border-l-4 border-orange-500">
-                                <h3 className="text-xs font-bold text-gray-400 mb-2 uppercase">Levy Scratchpad (Local)</h3>
-                                <input placeholder="Pot Size" type="number" className="bg-gray-700 w-full p-2 rounded mb-2" value={potSize} onChange={(e) => setPotSize(e.target.value)} />
-                                <p className="text-sm">Levy Suggestion: <span className="text-orange-400 font-mono font-bold">${calcLevy}</span></p>
+                            <div className="bg-orange-900/20 p-4 rounded-xl border border-orange-500/30">
+                                <h3 className="text-xs font-bold text-orange-500 mb-2 uppercase">Levy Calculator</h3>
+                                <input type="number" placeholder="Pot Size" className="bg-gray-900 p-2 w-full rounded mb-1" value={potSize} onChange={e => setPotSize(e.target.value)} />
+                                <p className="text-sm">Suggested: <span className="font-bold">${suggestedLevy}</span></p>
                             </div>
 
-                            <div className="bg-gray-800 p-4 rounded-lg">
-                                <h3 className="text-xs font-bold text-gray-400 mb-2 uppercase">Expense Distro</h3>
-                                <label className="text-[10px] block text-gray-500">Manual Levy Total</label>
-                                <input type="number" className="bg-gray-700 w-full p-2 rounded mb-3" value={manualLevyTotal} onChange={(e) => setManualLevyTotal(parseFloat(e.target.value) || 0)} />
+                            <div className="bg-gray-800 p-4 rounded-xl">
+                                <h3 className="text-xs font-bold text-gray-400 mb-3 uppercase">Apply Levy to Winners</h3>
+                                <input type="number" placeholder="Total Levy Amount" className="bg-gray-900 p-2 w-full rounded mb-3" value={manualLevyTotal} onChange={e => setManualLevyTotal(parseFloat(e.target.value) || 0)} />
                                 <div className="flex flex-wrap gap-2">
                                     {players.map(p => (
                                         <button key={p.id} onClick={() => selectedForLevy.includes(p.id) ? setSelectedForLevy(selectedForLevy.filter(i => i !== p.id)) : setSelectedForLevy([...selectedForLevy, p.id])}
-                                            className={`text-[10px] px-3 py-1 rounded-full border ${selectedForLevy.includes(p.id) ? 'bg-orange-600 border-orange-400' : 'bg-gray-700 border-gray-600 text-gray-400'}`}>
+                                            className={`text-[10px] px-3 py-1 rounded-full border ${selectedForLevy.includes(p.id) ? 'bg-orange-600 border-orange-400' : 'bg-gray-700 border-gray-600 text-gray-500'}`}>
                                             {p.name}
                                         </button>
                                     ))}
                                 </div>
                             </div>
 
-                            <div className="bg-black/30 p-4 rounded-lg border border-green-900/50">
-                                <h3 className="text-xs font-bold text-green-500 mb-3 uppercase tracking-widest">Final Settlements</h3>
-                                {settlements.length > 0 ? settlements.map((s, i) => (
-                                    <div key={i} className="flex justify-between text-sm py-1 border-b border-gray-800 last:border-0">
-                                        <span>{s.from} <span className="text-gray-500 text-xs">pays</span> {s.to}</span>
-                                        <span className="font-bold text-green-400">${s.amount}</span>
-                                    </div>
-                                )) : <p className="text-xs text-gray-600 italic">No settlements yet.</p>}
-                            </div>
+                            {!showSettlement ? (
+                                <button onClick={() => setShowSettlement(true)} className="w-full bg-green-600 p-4 rounded-xl font-bold">GENERATE FINAL PAYOUTS</button>
+                            ) : (
+                                <div className="bg-black/40 p-4 rounded-xl border border-green-500/30">
+                                    <h3 className="text-xs font-bold text-green-500 mb-3 uppercase">The Settlement</h3>
+                                    {settlements.map((s, i) => (
+                                        <div key={i} className="flex justify-between py-2 border-b border-gray-800 last:border-0">
+                                            <span>{s.from} ➔ {s.to}</span>
+                                            <span className="font-bold text-green-400">${s.amount}</span>
+                                        </div>
+                                    ))}
+                                    <button onClick={() => setShowSettlement(false)} className="mt-4 text-[10px] text-gray-500 w-full text-center underline">Hide Settlements</button>
+                                </div>
+                            )}
 
-                            <button onClick={totalRefresh} className="w-full text-red-500 text-xs font-bold py-4 hover:underline">TOTAL REFRESH APP</button>
+                            <button onClick={totalRefresh} className="w-full text-red-900 hover:text-red-500 text-[10px] font-bold py-10 uppercase tracking-widest">Wipe Data & Reset App</button>
                         </div>
                     )}
                 </div>
@@ -186,7 +168,7 @@
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<CardsAndSmoke />);
+        root.render(<App />);
     </script>
 </body>
 </html>
