@@ -10,10 +10,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+        body { font-family: 'Inter', sans-serif; background-color: #111827; color: #f3f4f6; }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100">
+<body>
     <div id="root"></div>
 
     <script type="text/babel">
@@ -49,24 +49,8 @@
                 return Math.ceil((pot * 0.05) / 10) * 10;
             }, [potSize]);
 
-            const addPlayer = () => {
-                setPlayers([...players, { id: Date.now(), name: `Seat ${players.length + 1}`, buyIn: 5000, chips: 0 }]);
-            };
-
             const updatePlayer = (id, field, val) => {
                 setPlayers(players.map(p => p.id === id ? { ...p, [field]: val } : p));
-            };
-
-            const removePlayer = (id) => {
-                if (players.length > 1) setPlayers(players.filter(p => p.id !== id));
-            };
-
-            const addExpense = () => {
-                setExpenses([...expenses, { id: Date.now(), label: "", amount: 0, payers: [] }]);
-            };
-
-            const updateExpense = (id, field, val) => {
-                setExpenses(expenses.map(e => e.id === id ? { ...e, [field]: val } : e));
             };
 
             const toggleExpensePayer = (expId, playerId) => {
@@ -77,65 +61,79 @@
                 }));
             };
 
-            const totalRefresh = () => {
-                if (window.confirm("TOTAL REFRESH: Reset to 'Alex'?")) {
-                    setPlayers([{ id: Date.now(), name: "Alex", buyIn: 5000, chips: 0 }]);
-                    setExpenses([]);
-                    setTotalCommPot(0);
-                    setHouseRake(0);
-                    setEntitledPlayers([]);
-                    setPotSize("");
-                    setShowSettlement(false);
-                }
-            };
-
             const distributablePot = Math.max(0, totalCommPot - houseRake);
-            
-            // --- TABLE BALANCE TRACKER ---
             const totalBuyIn = players.reduce((sum, p) => sum + p.buyIn, 0);
             const totalChipsOnTable = players.reduce((sum, p) => sum + p.chips, 0);
-            const isBalanced = totalBuyIn === totalChipsOnTable;
-
-            const results = useMemo(() => {
-                return players.map(p => {
-                    let net = p.chips - p.buyIn;
-                    if (entitledPlayers.includes(p.id) && entitledPlayers.length > 0) {
-                        net += (distributablePot / entitledPlayers.length);
-                    }
-                    expenses.forEach(exp => {
-                        if (exp.payers.includes(p.id) && exp.payers.length > 0) {
-                            net -= (exp.amount / exp.payers.length);
-                        }
-                    });
-                    return { name: p.name, net: Math.round(net) };
-                });
-            }, [players, distributablePot, entitledPlayers, expenses]);
+            const isBalanced = Math.abs(totalBuyIn - (totalChipsOnTable + totalCommPot)) < 0.01;
 
             const settlements = useMemo(() => {
                 if (!showSettlement) return [];
-                let debtors = results.filter(r => r.net < 0).map(r => ({ ...r, net: Math.abs(r.net) }));
-                let creditors = results.filter(r => r.net > 0).map(r => ({ ...r }));
+                
+                // Start with Player Nodes (Net = Chips - BuyIn)
+                const nodes = players.map(p => ({
+                    name: p.name,
+                    id: p.id,
+                    net: p.chips - p.buyIn
+                }));
+
+                // Deduct Expense Shares from Players
+                expenses.forEach(exp => {
+                    if (exp.payers.length > 0) {
+                        const share = exp.amount / exp.payers.length;
+                        exp.payers.forEach(pid => {
+                            const node = nodes.find(n => n.id === pid);
+                            if (node) node.net -= share;
+                        });
+                    }
+                });
+
+                // Add Community Pot Node
+                // It starts with the Total Pot value because that money is "owed" to the players/house
+                let cpNet = totalCommPot;
+                
+                // Distribute dividends to entitled players
+                if (entitledPlayers.length > 0) {
+                    const share = distributablePot / entitledPlayers.length;
+                    entitledPlayers.forEach(pid => {
+                        const node = nodes.find(n => n.id === pid);
+                        if (node) node.net += share;
+                    });
+                    cpNet -= distributablePot; 
+                }
+
+                // Add expenses to CP node (Pot receives money to pay for pizza)
+                const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+                cpNet += totalExpenses;
+
+                nodes.push({ name: "COMMUNITY POT", id: 'cp', net: -cpNet });
+
+                // Greedy Match
+                let debtors = nodes.filter(n => n.net < -0.01).map(n => ({ ...n, net: Math.abs(n.net) }));
+                let creditors = nodes.filter(n => n.net > 0.01).map(n => ({ ...n }));
                 const trans = [];
+
                 debtors.forEach(d => {
                     creditors.forEach(c => {
                         if (d.net > 0 && c.net > 0) {
                             const amount = Math.min(d.net, c.net);
-                            trans.push({ from: d.name, to: c.name, amount: Math.round(amount) });
-                            d.net -= amount;
-                            c.net -= amount;
+                            if (amount > 0.1) {
+                                trans.push({ from: d.name, to: c.name, amount: Math.round(amount) });
+                                d.net -= amount;
+                                c.net -= amount;
+                            }
                         }
                     });
                 });
                 return trans;
-            }, [results, showSettlement]);
+            }, [players, expenses, totalCommPot, houseRake, entitledPlayers, showSettlement]);
 
             return (
                 <div className="max-w-md mx-auto p-4 min-h-screen pb-20">
                     <header className="flex justify-between items-center mb-8 pt-4">
                         <h1 className="font-black text-orange-500 tracking-tighter text-3xl italic uppercase">Cards & Smoke</h1>
-                        <div className="flex bg-gray-800 rounded-xl p-1">
-                            <button onClick={() => setView('manage')} className={`px-6 py-2 rounded-lg text-xs font-black uppercase ${view === 'manage' ? 'bg-orange-600' : 'text-gray-500'}`}>Setup</button>
-                            <button onClick={() => setView('tally')} className={`px-6 py-2 rounded-lg text-xs font-black uppercase ${view === 'tally' ? 'bg-orange-600' : 'text-gray-500'}`}>Tally</button>
+                        <div className="flex bg-gray-800 rounded-xl p-1 shadow-inner">
+                            <button onClick={() => setView('manage')} className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${view === 'manage' ? 'bg-orange-600' : 'text-gray-500'}`}>Setup</button>
+                            <button onClick={() => setView('tally')} className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${view === 'tally' ? 'bg-orange-600' : 'text-gray-500'}`}>Tally</button>
                         </div>
                     </header>
 
@@ -144,19 +142,18 @@
                             {players.map(p => (
                                 <div key={p.id} className="bg-gray-800 p-5 rounded-2xl border border-gray-700">
                                     <div className="flex justify-between items-center mb-4">
-                                        <input className="bg-transparent font-black text-white text-xl outline-none w-3/4 focus:border-b border-orange-500" value={p.name} onChange={e => updatePlayer(p.id, 'name', e.target.value)} />
-                                        <button onClick={() => removePlayer(p.id)} className="text-gray-600 hover:text-red-500 text-xl font-bold">✕</button>
+                                        <input className="bg-transparent font-black text-white text-xl outline-none w-3/4 border-b border-transparent focus:border-orange-500" value={p.name} onChange={e => updatePlayer(p.id, 'name', e.target.value)} />
+                                        <button onClick={() => setPlayers(players.filter(pl => pl.id !== p.id))} className="text-gray-600 hover:text-red-500">✕</button>
                                     </div>
-                                    <label className="text-[10px] text-gray-500 uppercase font-black">Total Buy-In</label>
-                                    <input type="number" className="bg-gray-900 w-full p-3 rounded-xl mt-1 font-mono text-orange-400 text-lg" value={p.buyIn} onChange={e => updatePlayer(p.id, 'buyIn', parseInt(e.target.value) || 0)} />
+                                    <label className="text-[10px] text-gray-500 uppercase font-black">Buy-In Amount</label>
+                                    <input type="number" className="bg-gray-900 w-full p-3 rounded-xl mt-1 font-mono text-orange-400 text-lg outline-none" value={p.buyIn} onChange={e => updatePlayer(p.id, 'buyIn', parseInt(e.target.value) || 0)} />
                                 </div>
                             ))}
-                            <button onClick={addPlayer} className="w-full border-2 border-dashed border-gray-800 p-5 rounded-2xl text-gray-600 font-black uppercase tracking-widest">+ Add Player</button>
+                            <button onClick={() => setPlayers([...players, { id: Date.now(), name: `Player ${players.length + 1}`, buyIn: 5000, chips: 0 }])} className="w-full border-2 border-dashed border-gray-800 p-5 rounded-2xl text-gray-600 font-black uppercase tracking-widest">+ Add Player</button>
                         </div>
                     ) : (
                         <div className="space-y-6">
-                            {/* HELPER */}
-                            <section className="bg-orange-900/10 p-5 rounded-2xl border-2 border-orange-500/20">
+                            <section className="bg-orange-900/10 p-5 rounded-2xl border-2 border-orange-500/20 shadow-xl">
                                 <h3 className="text-[10px] font-black text-orange-500 mb-3 uppercase tracking-widest">Per Round Levy Helper</h3>
                                 <div className="flex gap-3 items-center">
                                     <input type="number" placeholder="Pot Size" className="bg-gray-900 p-3 rounded-xl flex-1 text-sm outline-none ring-1 ring-gray-700 focus:ring-orange-500" value={potSize} onChange={e => setPotSize(e.target.value)} />
@@ -167,35 +164,29 @@
                                 </div>
                             </section>
 
-                            {/* CHIPS */}
-                            <section className="bg-gray-800 p-5 rounded-2xl border border-gray-700">
-                                <h3 className="text-[10px] font-black text-gray-500 mb-4 uppercase tracking-widest text-center italic">Final Chip Counts</h3>
+                            <section className="bg-gray-800 p-5 rounded-2xl border border-gray-700 shadow-md">
+                                <h3 className="text-[10px] font-black text-gray-400 mb-4 uppercase tracking-widest text-center italic">Final Chip Counts</h3>
                                 {players.map(p => (
                                     <div key={p.id} className="flex items-center justify-between mb-3 last:mb-0">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-black">{p.name}</span>
-                                            <span className="text-[9px] text-gray-500 font-bold uppercase tracking-tighter italic">Paid: ${p.buyIn}</span>
-                                        </div>
-                                        <input type="number" className="bg-gray-900 p-3 w-28 rounded-xl text-right font-mono text-green-400 font-bold outline-none" value={p.chips} onChange={e => updatePlayer(p.id, 'chips', parseInt(e.target.value) || 0)} />
+                                        <span className="text-sm font-black">{p.name}</span>
+                                        <input type="number" className="bg-gray-900 p-3 w-32 rounded-xl text-right font-mono text-green-400 font-bold outline-none ring-1 ring-gray-700" value={p.chips} onChange={e => updatePlayer(p.id, 'chips', parseInt(e.target.value) || 0)} />
                                     </div>
                                 ))}
-                                {/* BALANCE WARNING */}
-                                <div className={`mt-4 p-2 rounded-lg text-center text-[10px] font-bold uppercase tracking-widest transition-colors ${isBalanced ? 'bg-green-900/20 text-green-500' : 'bg-red-900/20 text-red-500 border border-red-500/30'}`}>
-                                    {isBalanced ? "✓ Table Balanced" : `⚠ Discrepancy: $${totalChipsOnTable - totalBuyIn}`}
+                                <div className={`mt-4 p-2 rounded-lg text-center text-[10px] font-bold uppercase ${isBalanced ? 'bg-green-900/20 text-green-500' : 'bg-red-900/20 text-red-500'}`}>
+                                    {isBalanced ? "✓ Table Balanced" : `⚠ Discrepancy: $${totalChipsOnTable + totalCommPot - totalBuyIn}`}
                                 </div>
                             </section>
 
-                            {/* COMMUNITY POT */}
-                            <section className="bg-gray-800 p-5 rounded-2xl border-l-4 border-green-500">
-                                <h3 className="text-[10px] font-black text-green-500 mb-4 uppercase tracking-widest">Community Pot Distribution</h3>
+                            <section className="bg-gray-800 p-5 rounded-2xl border-l-4 border-green-500 shadow-md">
+                                <h3 className="text-[10px] font-black text-green-500 mb-4 uppercase tracking-widest">Community Pot</h3>
                                 <div className="grid grid-cols-2 gap-3 mb-4">
                                     <div>
-                                        <label className="text-[8px] text-gray-500 uppercase font-black">Total Pot</label>
-                                        <input type="number" className="bg-gray-900 p-3 w-full rounded-xl text-sm font-bold" value={totalCommPot} onChange={e => setTotalCommPot(parseFloat(e.target.value) || 0)} />
+                                        <label className="text-[8px] text-gray-500 uppercase font-black">Total Pot Cash</label>
+                                        <input type="number" className="bg-gray-900 p-3 w-full rounded-xl text-sm font-bold outline-none" value={totalCommPot} onChange={e => setTotalCommPot(parseFloat(e.target.value) || 0)} />
                                     </div>
                                     <div>
-                                        <label className="text-[8px] text-gray-500 uppercase font-black">House Rake</label>
-                                        <input type="number" className="bg-gray-900 p-3 w-full rounded-xl text-sm font-bold" value={houseRake} onChange={e => setHouseRake(parseFloat(e.target.value) || 0)} />
+                                        <label className="text-[8px] text-gray-500 uppercase font-black">House Rake (Rent)</label>
+                                        <input type="number" className="bg-gray-900 p-3 w-full rounded-xl text-sm font-bold outline-none" value={houseRake} onChange={e => setHouseRake(parseFloat(e.target.value) || 0)} />
                                     </div>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
@@ -208,48 +199,43 @@
                                 </div>
                             </section>
 
-                            {/* EXPENSES */}
                             <section className="space-y-3">
                                 <div className="flex justify-between items-center px-1">
-                                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Shared Expenses</h3>
-                                    <button onClick={addExpense} className="text-blue-500 text-[10px] font-black uppercase tracking-widest">+ Add Expense</button>
+                                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Expenses</h3>
+                                    <button onClick={() => setExpenses([...expenses, { id: Date.now(), label: "", amount: 0, payers: [] }])} className="text-blue-500 text-[10px] font-black uppercase tracking-widest">+ New</button>
                                 </div>
                                 {expenses.map(exp => (
                                     <div key={exp.id} className="bg-gray-800 p-5 rounded-2xl border border-gray-700">
                                         <div className="flex gap-2 mb-4">
-                                            <input placeholder="Item" className="bg-gray-900 p-3 rounded-xl flex-1 text-xs font-bold" value={exp.label} onChange={e => updateExpense(exp.id, 'label', e.target.value)} />
-                                            <input type="number" placeholder="$" className="bg-gray-900 p-3 rounded-xl w-24 text-right font-mono font-bold" value={exp.amount} onChange={e => updateExpense(exp.id, 'amount', parseFloat(e.target.value) || 0)} />
+                                            <input placeholder="Item" className="bg-gray-900 p-3 rounded-xl flex-1 text-xs font-bold outline-none" value={exp.label} onChange={e => setExpenses(expenses.map(ex => ex.id === exp.id ? { ...ex, label: e.target.value } : ex))} />
+                                            <input type="number" placeholder="$" className="bg-gray-900 p-3 rounded-xl w-24 text-right font-mono font-bold outline-none" value={exp.amount} onChange={e => setExpenses(expenses.map(ex => ex.id === exp.id ? { ...ex, amount: parseFloat(e.target.value) || 0 } : ex))} />
                                         </div>
                                         <div className="flex flex-wrap gap-1">
                                             {players.map(p => (
-                                                <button key={p.id} onClick={() => toggleExpensePayer(exp.id, p.id)}
-                                                    className={`text-[9px] font-black px-3 py-2 rounded-lg border transition-all ${exp.payers.includes(p.id) ? 'bg-blue-600 border-blue-400 text-white' : 'bg-gray-900 border-gray-700 text-gray-600'}`}>
-                                                    {p.name}
-                                                </button>
+                                                <button key={p.id} onClick={() => toggleExpensePayer(exp.id, p.id)} className={`text-[9px] font-black px-3 py-2 rounded-lg border transition-all ${exp.payers.includes(p.id) ? 'bg-blue-600 border-blue-400' : 'bg-gray-900 border-gray-700 text-gray-600'}`}>{p.name}</button>
                                             ))}
                                         </div>
                                     </div>
                                 ))}
                             </section>
 
-                            {/* SETTLEMENT */}
                             {!showSettlement ? (
                                 <button onClick={() => setShowSettlement(true)} className="w-full bg-green-600 p-5 rounded-2xl font-black tracking-widest text-sm shadow-xl shadow-green-900/30 uppercase">Reveal Final Payouts</button>
                             ) : (
                                 <div className="bg-white text-gray-900 p-6 rounded-3xl shadow-2xl animate-in zoom-in-95 duration-300">
                                     <h3 className="text-[10px] font-black text-gray-400 mb-6 uppercase tracking-[0.3em] text-center font-bold">Final Settlement</h3>
-                                    <div className="space-y-4">
+                                    <div className="space-y-4 max-h-[40vh] overflow-y-auto">
                                         {settlements.length > 0 ? settlements.map((s, i) => (
                                             <div key={i} className="flex justify-between items-center border-b border-gray-100 pb-3 last:border-0 last:pb-0">
-                                                <div className="flex flex-col"><span className="text-sm font-black uppercase">{s.from}</span><span className="text-[8px] font-bold text-gray-400 tracking-widest uppercase">Pays to {s.to}</span></div>
+                                                <div className="flex flex-col"><span className="text-sm font-black uppercase">{s.from}</span><span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Pays {s.to}</span></div>
                                                 <span className="font-black text-2xl text-green-600 tracking-tighter">${s.amount}</span>
                                             </div>
-                                        )) : <p className="text-center italic text-gray-400 py-4 font-bold">Square.</p>}
+                                        )) : <p className="text-center italic text-gray-400 py-4 font-bold">Even Break.</p>}
                                     </div>
                                     <button onClick={() => setShowSettlement(false)} className="mt-8 w-full text-[10px] font-black text-gray-300 uppercase tracking-widest text-center border-t border-gray-100 pt-4">Back to Edits</button>
                                 </div>
                             )}
-                            <button onClick={totalRefresh} className="w-full text-red-900/50 font-black text-[10px] uppercase py-10 tracking-[0.4em] hover:text-red-600">Total Reset App</button>
+                            <button onClick={() => { if(window.confirm("RESET ALL?")) { localStorage.clear(); window.location.reload(); }}} className="w-full text-red-900/50 font-black text-[10px] uppercase py-10 tracking-[0.4em] hover:text-red-600 transition-all">Factory Reset App</button>
                         </div>
                     )}
                 </div>
