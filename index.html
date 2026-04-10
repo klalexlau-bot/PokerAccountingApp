@@ -1,627 +1,192 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cards & Smoke | Poker Accounting App</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #0a0a0a;
-      color: #e8d7b0;
-    }
-    input::-webkit-outer-spin-button,
-    input::-webkit-inner-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-    input[type=number] {
-      -moz-appearance: textfield;
-    }
-  </style>
-  <script>
-    // Firebase configuration - Replace with your project config
-    // You can set these variables in your environment or deployment platform
-    const __firebase_config = JSON.stringify({
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    });
-    const __app_id = "poker-accounting-prod";
-  </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cards & Smoke | Poker Ledger</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 </head>
-<body>
-  <div id="root"></div>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <div id="root"></div>
 
-  <!-- Load React, ReactDOM, and Firebase -->
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
-  
-  <!-- Firebase App (the core Firebase SDK) -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
-  
-  <!-- Add Firebase products that you want to use -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js"></script>
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
 
-  <!-- Your React component -->
-  <script type="text/babel">
-    const { useState, useEffect, useMemo, memo } = React;
-    const { createRoot } = ReactDOM;
-    
-    // Import Firebase modules
-    const { initializeApp } = firebase.app;
-    const { getAuth, signInAnonymously, onAuthStateChanged } = firebase.auth;
-    const { 
-      getFirestore, doc, setDoc, onSnapshot, collection, 
-      writeBatch, deleteDoc 
-    } = firebase.firestore;
+        // --- FIREBASE INITIALIZATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBVtypWYLHnlpjQcVdcr-01mEbWc7erDH4",
+            authDomain: "pokeraccountingapp.firebaseapp.com",
+            projectId: "pokeraccountingapp",
+            storageBucket: "pokeraccountingapp.firebasestorage.app",
+            messagingSenderId: "453989055970",
+            appId: "1:453989055970:web:ea1bfc38ef564b38d94dbb"
+        };
 
-    // --- FIREBASE CONFIG ---
-    const firebaseConfig = typeof __firebase_config !== 'undefined' 
-      ? JSON.parse(__firebase_config) 
-      : {}; // This will be injected from the script tag above
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'poker-accounting-prod';
+        function CardsAndSmoke() {
+            const [view, setView] = useState('manage');
+            const [players, setPlayers] = useState([{ id: Date.now().toString(), name: "Seat 1", buyIn: 5000, chips: 0 }]);
+            
+            // Standalone Local Levy Helper
+            const [potSize, setPotSize] = useState("");
+            const [calcLevy, setCalcLevy] = useState(0);
 
-    // Create a memoized PlayerItem component to reduce re-renders
-    const PlayerItem = memo(({ player, updatePlayerLocal, deletePlayer }) => {
-      return (
-        <div className="bg-[#141414] border border-white/5 rounded-3xl p-5 space-y-4 shadow-xl">
-          <div className="flex justify-between items-center">
-            <span className="font-black text-[#c4a14c] uppercase tracking-wide">{player.name}</span>
-            <button 
-              onClick={() => {
-                if (window.confirm(`Remove ${player.name} from the game?`)) {
-                  deletePlayer(player.id);
+            // Manual Tally State
+            const [manualLevyTotal, setManualLevyTotal] = useState(0);
+            const [selectedForLevy, setSelectedForLevy] = useState([]);
+
+            // Sync with Firebase on Load
+            useEffect(() => {
+                const unsubscribe = db.collection("games").doc("current-session")
+                    .onSnapshot((doc) => {
+                        if (doc.exists) {
+                            const data = doc.data();
+                            if (data.players) setPlayers(data.players);
+                        }
+                    });
+                return () => unsubscribe();
+            }, []);
+
+            // Save to Firebase helper
+            const saveToCloud = (newPlayers) => {
+                db.collection("games").doc("current-session").set({ players: newPlayers }, { merge: true });
+            };
+
+            // Calculate Levy Suggestion (Local Only)
+            useEffect(() => {
+                const pot = parseFloat(potSize) || 0;
+                if (pot > 1000) {
+                    const baseLevy = pot * 0.05;
+                    setCalcLevy(Math.ceil(baseLevy / 10) * 10);
+                } else { setCalcLevy(0); }
+            }, [potSize]);
+
+            const addPlayer = () => {
+                const newPlayers = [...players, { id: Date.now().toString(), name: `Player ${players.length + 1}`, buyIn: 5000, chips: 0 }];
+                setPlayers(newPlayers);
+                saveToCloud(newPlayers);
+            };
+
+            const updatePlayer = (id, field, value) => {
+                const newPlayers = players.map(p => p.id === id ? { ...p, [field]: value } : p);
+                setPlayers(newPlayers);
+                saveToCloud(newPlayers);
+            };
+
+            const totalRefresh = async () => {
+                if (window.confirm("TOTAL REFRESH: Are you sure? This wipes all players and resets to Seat 1.")) {
+                    const resetState = [{ id: Date.now().toString(), name: "Seat 1", buyIn: 5000, chips: 0 }];
+                    setPlayers(resetState);
+                    setPotSize("");
+                    setManualLevyTotal(0);
+                    setSelectedForLevy([]);
+                    await db.collection("games").doc("current-session").set({ players: resetState });
                 }
-              }} 
-              className="text-red-900 text-[9px] font-bold uppercase"
-            >
-              Kick
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-[8px] uppercase opacity-40 font-bold block ml-1">Buy-In</label>
-              <div className="flex items-center bg-black/50 rounded-xl p-1 border border-white/5">
-                <button onClick={() => updatePlayerLocal(player.id, 'buyIn', (player.buyIn || 0) - 500)} className="w-8 h-8 rounded-lg bg-white/5">-</button>
-                <input 
-                  type="number" 
-                  value={player.buyIn || 0} 
-                  onChange={(e) => updatePlayerLocal(player.id, 'buyIn', parseInt(e.target.value) || 0)} 
-                  className="flex-1 bg-transparent text-center font-mono outline-none" 
-                />
-                <button onClick={() => updatePlayerLocal(player.id, 'buyIn', (player.buyIn || 0) + 500)} className="w-8 h-8 rounded-lg bg-white/5">+</button>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label className="text-[8px] uppercase opacity-40 font-bold block ml-1">End Chips</label>
-              <div className="flex items-center bg-black/50 rounded-xl p-1 border border-white/5">
-                <button onClick={() => updatePlayerLocal(player.id, 'endChips', (player.endChips || 0) - 100)} className="w-8 h-8 rounded-lg bg-white/5">-</button>
-                <input 
-                  type="number" 
-                  value={player.endChips || 0} 
-                  onChange={(e) => updatePlayerLocal(player.id, 'endChips', parseInt(e.target.value) || 0)} 
-                  className="flex-1 bg-transparent text-center font-mono text-green-500 outline-none" 
-                />
-                <button onClick={() => updatePlayerLocal(player.id, 'endChips', (player.endChips || 0) + 100)} className="w-8 h-8 rounded-lg bg-white/5">+</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    });
+            };
 
-    function App() {
-      const [user, setUser] = useState(null);
-      const [players, setPlayers] = useState([]);
-      const [housePool, setHousePool] = useState(0);
-      const [expenses, setExpenses] = useState(0);
-      const [view, setView] = useState('players');
-      const [selectedForTally, setSelectedForTally] = useState([]);
-      const [isSyncing, setIsSyncing] = useState(false);
-      const [statusMsg, setStatusMsg] = useState('');
-      const [isOnline, setIsOnline] = useState(navigator.onLine);
+            // SETTLEMENT ENGINE LOGIC
+            const settlements = useMemo(() => {
+                const results = players.map(p => {
+                    let net = p.chips - p.buyIn;
+                    // Subtract Levy share if selected
+                    if (selectedForLevy.includes(p.id) && selectedForLevy.length > 0) {
+                        net -= (manualLevyTotal / selectedForLevy.length);
+                    }
+                    return { name: p.name, net };
+                });
 
-      // 1. AUTHENTICATION & INITIAL CACHE LOAD
-      useEffect(() => {
-        const cachedPlayers = localStorage.getItem(`${appId}_players`);
-        if (cachedPlayers) {
-          try {
-            setPlayers(JSON.parse(cachedPlayers));
-          } catch (e) {
-            console.error("Cache corrupted, clearing...");
-            localStorage.removeItem(`${appId}_players`);
-          }
-        }
-        
-        // Load cached house and expenses data
-        const cachedHouse = localStorage.getItem(`${appId}_house`);
-        if (cachedHouse) {
-          try {
-            setHousePool(parseInt(cachedHouse) || 0);
-          } catch (e) {
-            localStorage.removeItem(`${appId}_house`);
-          }
-        }
-        
-        const cachedExpenses = localStorage.getItem(`${appId}_expenses`);
-        if (cachedExpenses) {
-          try {
-            setExpenses(parseInt(cachedExpenses) || 0);
-          } catch (e) {
-            localStorage.removeItem(`${appId}_expenses`);
-          }
-        }
+                let debtors = results.filter(r => r.net < 0).map(r => ({ ...r, net: Math.abs(r.net) }));
+                let creditors = results.filter(r => r.net > 0).map(r => ({ ...r }));
+                const transactions = [];
 
-        const initAuth = async () => {
-          try {
-            await signInAnonymously(auth);
-          } catch (e) {
-            setStatusMsg("Auth Failed. Check Connection.");
-          }
-        };
-        initAuth();
-        
-        // Setup online status listeners
-        const handleOnline = () => {
-          setIsOnline(true);
-          setStatusMsg("Back online. Sync available.");
-          setTimeout(() => setStatusMsg(""), 3000);
-        };
-        
-        const handleOffline = () => {
-          setIsOnline(false);
-          setStatusMsg("You're offline. Changes saved locally.");
-        };
-        
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
-        
-        const authUnsubscribe = onAuthStateChanged(auth, setUser);
-        
-        return () => {
-          authUnsubscribe();
-          window.removeEventListener('online', handleOnline);
-          window.removeEventListener('offline', handleOffline);
-        };
-      }, []);
+                debtors.forEach(d => {
+                    creditors.forEach(c => {
+                        if (d.net > 0 && c.net > 0) {
+                            const amount = Math.min(d.net, c.net);
+                            transactions.push({ from: d.name, to: c.name, amount: amount.toFixed(0) });
+                            d.net -= amount;
+                            c.net -= amount;
+                        }
+                    });
+                });
+                return transactions;
+            }, [players, manualLevyTotal, selectedForLevy]);
 
-      // 2. DATA SYNC
-      useEffect(() => {
-        if (!user || !isOnline) return;
+            return (
+                <div className="max-w-md mx-auto p-4 pb-24">
+                    <header className="flex justify-between items-center mb-6 border-b border-gray-700 pb-2">
+                        <h1 className="text-xl font-bold text-orange-500">CARDS & SMOKE</h1>
+                        <nav className="flex gap-4">
+                            <button onClick={() => setView('manage')} className={view === 'manage' ? 'text-white border-b-2 border-orange-500' : 'text-gray-500'}>Manage</button>
+                            <button onClick={() => setView('tally')} className={view === 'tally' ? 'text-white border-b-2 border-orange-500' : 'text-gray-500'}>Tally</button>
+                        </nav>
+                    </header>
 
-        const unsubPlayers = onSnapshot(
-          collection(db, 'artifacts', appId, 'public', 'data', 'players'), 
-          (snap) => {
-            const pList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            if (pList.length > 0) {
-              setPlayers(pList);
-              localStorage.setItem(`${appId}_players`, JSON.stringify(pList));
-            }
-          },
-          (error) => {
-            console.error("Error syncing players:", error);
-            setStatusMsg("Error syncing data. Using local data.");
-            setTimeout(() => setStatusMsg(""), 3000);
-          }
-        );
-
-        const unsubHouse = onSnapshot(
-          doc(db, 'artifacts', appId, 'public', 'data', 'totals', 'house'), 
-          (d) => {
-            if (d.exists()) {
-              const value = d.data().value || 0;
-              setHousePool(value);
-              localStorage.setItem(`${appId}_house`, value.toString());
-            }
-          },
-          (error) => {
-            console.error("Error syncing house:", error);
-          }
-        );
-        
-        const unsubExpenses = onSnapshot(
-          doc(db, 'artifacts', appId, 'public', 'data', 'totals', 'expenses'), 
-          (d) => {
-            if (d.exists()) {
-              const value = d.data().value || 0;
-              setExpenses(value);
-              localStorage.setItem(`${appId}_expenses`, value.toString());
-            }
-          },
-          (error) => {
-            console.error("Error syncing expenses:", error);
-          }
-        );
-
-        return () => { 
-          unsubPlayers(); 
-          unsubHouse();
-          unsubExpenses(); 
-        };
-      }, [user, isOnline]);
-
-      // --- ACTIONS ---
-      const updatePlayerLocal = (id, field, value) => {
-        // Ensure value is a valid number and non-negative
-        const validValue = Math.max(0, isNaN(value) ? 0 : value);
-        
-        const updated = players.map(p => p.id === id ? { ...p, [field]: validValue } : p);
-        setPlayers(updated);
-        localStorage.setItem(`${appId}_players`, JSON.stringify(updated));
-      };
-
-      const syncToCloud = async () => {
-        if (isSyncing || !user) return;
-        
-        if (!isOnline) {
-          setStatusMsg("You're offline. Changes saved locally.");
-          setTimeout(() => setStatusMsg(""), 3000);
-          return;
-        }
-        
-        setIsSyncing(true);
-        setStatusMsg('Syncing...');
-        try {
-          const batch = writeBatch(db);
-          
-          players.forEach(p => {
-            const ref = doc(db, 'artifacts', appId, 'public', 'data', 'players', p.id);
-            batch.set(ref, { 
-              name: p.name, 
-              buyIn: p.buyIn || 0, 
-              endChips: p.endChips || 0,
-              createdAt: p.createdAt || Date.now()
-            }, { merge: true });
-          });
-          
-          const houseRef = doc(db, 'artifacts', appId, 'public', 'data', 'totals', 'house');
-          batch.set(houseRef, { value: housePool }, { merge: true });
-          
-          const expenseRef = doc(db, 'artifacts', appId, 'public', 'data', 'totals', 'expenses');
-          batch.set(expenseRef, { value: expenses }, { merge: true });
-          
-          await batch.commit();
-          setStatusMsg('Saved to Cloud');
-          setTimeout(() => setStatusMsg(''), 3000);
-        } catch (e) {
-          console.error("Sync error:", e);
-          setStatusMsg('Sync Error! Data saved locally.');
-          setTimeout(() => setStatusMsg(''), 4000);
-        } finally {
-          setIsSyncing(false);
-        }
-      };
-
-      const addPlayer = async () => {
-        const name = prompt("Player Name:");
-        if (!name || name.trim() === '') return;
-        
-        const id = Date.now().toString();
-        const newPlayer = { id, name, buyIn: 0, endChips: 0, createdAt: Date.now() };
-        const updated = [...players, newPlayer];
-        setPlayers(updated);
-        localStorage.setItem(`${appId}_players`, JSON.stringify(updated));
-        
-        if (isOnline && user) {
-          try {
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', id), newPlayer);
-          } catch (error) {
-            console.error("Error adding player to cloud:", error);
-            setStatusMsg("Player added locally. Sync to update cloud.");
-            setTimeout(() => setStatusMsg(''), 3000);
-          }
-        }
-      };
-
-      const deletePlayer = async (id) => {
-        const updated = players.filter(p => p.id !== id);
-        setPlayers(updated);
-        localStorage.setItem(`${appId}_players`, JSON.stringify(updated));
-        
-        // Remove from selected tally if present
-        if (selectedForTally.includes(id)) {
-          setSelectedForTally(prev => prev.filter(x => x !== id));
-        }
-        
-        if (isOnline && user) {
-          try {
-            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'players', id));
-          } catch (error) {
-            console.error("Error removing player from cloud:", error);
-            setStatusMsg("Player removed locally. Sync to update cloud.");
-            setTimeout(() => setStatusMsg(''), 3000);
-          }
-        }
-      };
-
-      const updateHousePool = (newValue) => {
-        setHousePool(newValue);
-        localStorage.setItem(`${appId}_house`, newValue.toString());
-      };
-      
-      const updateExpenses = (newValue) => {
-        setExpenses(newValue);
-        localStorage.setItem(`${appId}_expenses`, newValue.toString());
-      };
-
-      // --- SETTLEMENT MATH ---
-      const settlementData = useMemo(() => {
-        // Calculate net results for each player
-        const netProfit = housePool - expenses;
-        const shareCount = selectedForTally.length;
-        const sharePerPerson = shareCount > 0 ? netProfit / shareCount : 0;
-
-        const calculated = players.map(p => {
-          const isEntitled = selectedForTally.includes(p.id);
-          const profitShare = isEntitled ? sharePerPerson : 0;
-          const netResult = (p.endChips || 0) + profitShare - (p.buyIn || 0);
-          return { ...p, netResult };
-        });
-
-        // Separate into debtors and creditors with rounding
-        let debtors = calculated
-          .filter(p => p.netResult < -0.1)
-          .map(p => ({ name: p.name, amount: Math.abs(Math.round(p.netResult)) }))
-          .sort((a, b) => b.amount - a.amount); // Sort by amount desc
-
-        let creditors = calculated
-          .filter(p => p.netResult > 0.1)
-          .map(p => ({ name: p.name, amount: Math.round(p.netResult) }))
-          .sort((a, b) => b.amount - a.amount); // Sort by amount desc
-
-        // Generate optimized transactions
-        const transactions = [];
-        
-        while (debtors.length > 0 && creditors.length > 0) {
-          const debtor = debtors[0];
-          const creditor = creditors[0];
-          
-          const amount = Math.min(debtor.amount, creditor.amount);
-          if (amount > 0.1) {
-            transactions.push({ 
-              from: debtor.name, 
-              to: creditor.name, 
-              amount: amount
-            });
-          }
-          
-          debtor.amount -= amount;
-          creditor.amount -= amount;
-          
-          // Remove settled accounts
-          if (debtor.amount < 0.1) debtors.shift();
-          if (creditor.amount < 0.1) creditors.shift();
-        }
-        
-        return transactions;
-      }, [players, housePool, expenses, selectedForTally]);
-
-      if (!user && !statusMsg) {
-        return (
-          <div className="h-screen flex items-center justify-center bg-black text-[#c4a14c] font-bold">
-            CARDS & SMOKE...
-          </div>
-        );
-      }
-
-      return (
-        <div className="min-h-screen bg-[#0a0a0a] text-[#e8d7b0] font-sans pb-32">
-          {statusMsg && (
-            <div className="fixed top-0 left-0 w-full bg-[#c4a14c] text-black text-[10px] font-bold py-1 text-center z-[100] uppercase tracking-widest">
-              {statusMsg}
-            </div>
-          )}
-
-          <header className="p-6 border-b border-[#c4a14c]/20 bg-[#141414] flex justify-between items-center">
-            <div>
-              <h1 className="text-xl font-black uppercase tracking-tighter text-[#c4a14c]">Cards & Smoke</h1>
-              <p className="text-[9px] opacity-40 uppercase">
-                {isOnline ? "Hybrid Local/Cloud Ledger" : "Offline Mode (Local Only)"}
-              </p>
-            </div>
-            <button 
-              onClick={syncToCloud} 
-              disabled={isSyncing || !isOnline || !user}
-              className={`px-5 py-2 rounded-full text-[10px] font-black uppercase shadow-lg active:scale-95 transition-transform ${
-                isOnline && user ? 'bg-[#c4a14c] text-black' : 'bg-gray-800 text-gray-600'
-              }`}
-            >
-              {isSyncing ? 'Syncing...' : isOnline ? 'Sync Cloud' : 'Offline'}
-            </button>
-          </header>
-
-          <nav className="flex sticky top-0 bg-[#0a0a0a] border-b border-white/5 z-50">
-            {['players', 'house', 'settle'].map(v => (
-              <button 
-                key={v} 
-                onClick={() => setView(v)} 
-                className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest ${view === v ? 'text-[#c4a14c] border-b-2 border-[#c4a14c]' : 'opacity-30'}`}
-              >
-                {v}
-              </button>
-            ))}
-          </nav>
-
-          <main className="p-4 max-w-xl mx-auto space-y-4">
-            {view === 'players' && (
-              <div className="space-y-4">
-                <button onClick={addPlayer} className="w-full py-4 bg-white/5 border border-white/10 text-white rounded-2xl text-[11px] font-bold uppercase tracking-widest">
-                  + New Player
-                </button>
-                {players.length === 0 && (
-                  <div className="text-center py-10 opacity-50">
-                    <p>No players yet</p>
-                    <p className="text-[10px] mt-2">Add players to get started</p>
-                  </div>
-                )}
-                {players.map(p => (
-                  <PlayerItem 
-                    key={p.id}
-                    player={p}
-                    updatePlayerLocal={updatePlayerLocal}
-                    deletePlayer={deletePlayer}
-                  />
-                ))}
-              </div>
-            )}
-
-            {view === 'house' && (
-              <div className="space-y-6">
-                <div className="bg-[#141414] border border-[#c4a14c]/20 p-8 rounded-[40px] text-center shadow-2xl">
-                  <p className="text-[9px] uppercase opacity-30 tracking-[0.4em] mb-4">House Rake Pool</p>
-                  <h2 className="text-6xl font-black text-[#c4a14c] font-mono">${housePool}</h2>
-                  <div className="flex justify-center gap-4 mt-10">
-                    <button onClick={() => updateHousePool(Math.max(0, housePool - 100))} className="px-6 py-3 border border-white/10 rounded-full text-[10px] font-bold">DEBIT 100</button>
-                    <button onClick={() => updateHousePool(housePool + 100)} className="px-6 py-3 bg-[#c4a14c] text-black rounded-full text-[10px] font-bold">ADD 100</button>
-                  </div>
-                </div>
-                
-                <div className="bg-[#141414] border border-red-900/20 p-8 rounded-[40px] text-center shadow-2xl">
-                  <p className="text-[9px] uppercase opacity-30 tracking-[0.4em] mb-4">Expenses</p>
-                  <h2 className="text-5xl font-black text-red-500 font-mono">-${expenses}</h2>
-                  <div className="flex justify-center gap-4 mt-10">
-                    <button onClick={() => updateExpenses(Math.max(0, expenses - 100))} className="px-6 py-3 border border-white/10 rounded-full text-[10px] font-bold">REDUCE 100</button>
-                    <button onClick={() => updateExpenses(expenses + 100)} className="px-6 py-3 bg-red-900/50 text-white rounded-full text-[10px] font-bold">ADD 100</button>
-                  </div>
-                </div>
-                
-                <div className="bg-[#141414] border border-white/5 p-6 rounded-3xl">
-                  <h3 className="text-center text-[10px] uppercase font-bold mb-4">Net Rake Distribution</h3>
-                  <div className="flex justify-between items-center">
-                    <div className="text-[10px] opacity-60">
-                      <div>House Rake: ${housePool}</div>
-                      <div>Expenses: -${expenses}</div>
-                    </div>
-                    <div className="text-xl font-bold">
-                      ${Math.max(0, housePool - expenses)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {view === 'settle' && (
-              <div className="space-y-6">
-                <div className="bg-[#141414] rounded-3xl p-6 border border-white/5">
-                  <div className="flex justify-between items-center mb-6">
-                    <span className="text-[10px] font-black uppercase text-[#c4a14c]">Rake Distribution</span>
-                    <span className="text-xl font-mono">${Math.max(0, housePool - expenses)}</span>
-                  </div>
-                  
-                  <p className="text-[9px] text-center opacity-40 mb-4">Select players entitled to share the rake:</p>
-                  
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {players.length === 0 && (
-                      <p className="text-center opacity-50 w-full py-2">No players available</p>
-                    )}
-                    
-                    {players.map(p => (
-                      <button 
-                        key={p.id} 
-                        onClick={() => setSelectedForTally(prev => prev.includes(p.id) ? prev.filter(x => x !== p.id) : [...prev, p.id])}
-                        className={`px-4 py-2 rounded-xl text-[10px] font-bold border transition-all ${selectedForTally.includes(p.id) ? 'bg-[#c4a14c] text-black border-[#c4a14c]' : 'border-white/10 opacity-30'}`}
-                      >
-                        {p.name}
-                      </button>
-                    ))}
-                  </div>
-                  
-                  {selectedForTally.length > 0 && (
-                    <div className="mt-4 text-center text-[10px] opacity-60">
-                      {selectedForTally.length} players selected
-                      {housePool - expenses > 0 && (
-                        <span> (${Math.round((housePool - expenses) / selectedForTally.length)} each)</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  <h3 className="text-[10px] font-black uppercase tracking-widest text-center opacity-40">Settlement Map</h3>
-                  
-                  {settlementData.length === 0 ? (
-                    <div className="bg-black/40 border border-white/5 p-5 rounded-2xl text-center opacity-40">
-                      <p>No transactions needed</p>
-                      <p className="text-[9px] mt-1">Select players to distribute rake or adjust chip counts</p>
-                    </div>
-                  ) : settlementData.map((t, i) => (
-                    <div key={i} className="bg-black/40 border border-white/5 p-5 rounded-2xl flex justify-between items-center">
-                      <div className="text-[11px] uppercase tracking-wide">
-                        <span className="text-red-500 font-bold">{t.from}</span>
-                        <span className="mx-2 opacity-20">→</span>
-                        <span className="text-green-500 font-bold">{t.to}</span>
-                      </div>
-                      <div className="text-xl font-mono font-black">${t.amount}</div>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="bg-[#141414] border border-white/10 rounded-2xl overflow-hidden">
-                  <div className="bg-black/30 px-4 py-3 text-[10px] uppercase font-bold">
-                    Balance Details
-                  </div>
-                  <div className="p-4 space-y-2">
-                    {players.map(p => {
-                      const isEntitled = selectedForTally.includes(p.id);
-                      const netProfit = housePool - expenses;
-                      const shareCount = selectedForTally.length;
-                      const sharePerPerson = shareCount > 0 ? netProfit / shareCount : 0;
-                      const profitShare = isEntitled ? sharePerPerson : 0;
-                      const netResult = (p.endChips || 0) + profitShare - (p.buyIn || 0);
-                      
-                      return (
-                        <div key={p.id} className="flex justify-between items-center border-b border-white/5 pb-2">
-                          <div>
-                            <div className="font-bold">{p.name}</div>
-                            <div className="text-[9px] opacity-60 space-x-1">
-                              <span>End: {p.endChips || 0}</span>
-                              {isEntitled && <span>+ Share: {Math.round(profitShare)}</span>}
-                              <span>- Buy: {p.buyIn || 0}</span>
-                            </div>
-                          </div>
-                          <div className={`font-mono font-bold ${netResult >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {netResult >= 0 ? '+' : ''}{Math.round(netResult)}
-                          </div>
+                    {view === 'manage' ? (
+                        <div className="space-y-4">
+                            {players.map(p => (
+                                <div key={p.id} className="bg-gray-800 p-4 rounded-lg border border-gray-700 shadow-lg">
+                                    <input className="bg-transparent font-bold text-lg mb-2 block w-full focus:text-orange-400 outline-none" value={p.name} onChange={(e) => updatePlayer(p.id, 'name', e.target.value)} />
+                                    <div className="flex gap-4">
+                                        <div className="flex-1"><label className="text-[10px] text-gray-400 uppercase">Buy-In</label>
+                                        <input type="number" className="bg-gray-700 w-full p-2 rounded" value={p.buyIn} onChange={(e) => updatePlayer(p.id, 'buyIn', parseInt(e.target.value) || 0)} /></div>
+                                        <div className="flex-1"><label className="text-[10px] text-gray-400 uppercase">Chips</label>
+                                        <input type="number" className="bg-gray-700 w-full p-2 rounded" value={p.chips} onChange={(e) => updatePlayer(p.id, 'chips', parseInt(e.target.value) || 0)} /></div>
+                                    </div>
+                                </div>
+                            ))}
+                            <button onClick={addPlayer} className="w-full bg-orange-600 hover:bg-orange-500 p-3 rounded-xl font-bold transition-colors">ADD PLAYER</button>
                         </div>
-                      );
-                    })}
-                  </div>
+                    ) : (
+                        <div className="space-y-6">
+                            <div className="bg-gray-800 p-4 rounded-lg border-l-4 border-orange-500">
+                                <h3 className="text-xs font-bold text-gray-400 mb-2 uppercase">Levy Scratchpad (Local)</h3>
+                                <input placeholder="Pot Size" type="number" className="bg-gray-700 w-full p-2 rounded mb-2" value={potSize} onChange={(e) => setPotSize(e.target.value)} />
+                                <p className="text-sm">Levy Suggestion: <span className="text-orange-400 font-mono font-bold">${calcLevy}</span></p>
+                            </div>
+
+                            <div className="bg-gray-800 p-4 rounded-lg">
+                                <h3 className="text-xs font-bold text-gray-400 mb-2 uppercase">Expense Distro</h3>
+                                <label className="text-[10px] block text-gray-500">Manual Levy Total</label>
+                                <input type="number" className="bg-gray-700 w-full p-2 rounded mb-3" value={manualLevyTotal} onChange={(e) => setManualLevyTotal(parseFloat(e.target.value) || 0)} />
+                                <div className="flex flex-wrap gap-2">
+                                    {players.map(p => (
+                                        <button key={p.id} onClick={() => selectedForLevy.includes(p.id) ? setSelectedForLevy(selectedForLevy.filter(i => i !== p.id)) : setSelectedForLevy([...selectedForLevy, p.id])}
+                                            className={`text-[10px] px-3 py-1 rounded-full border ${selectedForLevy.includes(p.id) ? 'bg-orange-600 border-orange-400' : 'bg-gray-700 border-gray-600 text-gray-400'}`}>
+                                            {p.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="bg-black/30 p-4 rounded-lg border border-green-900/50">
+                                <h3 className="text-xs font-bold text-green-500 mb-3 uppercase tracking-widest">Final Settlements</h3>
+                                {settlements.length > 0 ? settlements.map((s, i) => (
+                                    <div key={i} className="flex justify-between text-sm py-1 border-b border-gray-800 last:border-0">
+                                        <span>{s.from} <span className="text-gray-500 text-xs">pays</span> {s.to}</span>
+                                        <span className="font-bold text-green-400">${s.amount}</span>
+                                    </div>
+                                )) : <p className="text-xs text-gray-600 italic">No settlements yet.</p>}
+                            </div>
+
+                            <button onClick={totalRefresh} className="w-full text-red-500 text-xs font-bold py-4 hover:underline">TOTAL REFRESH APP</button>
+                        </div>
+                    )}
                 </div>
-              </div>
-            )}
-          </main>
+            );
+        }
 
-          <div className="fixed bottom-0 w-full bg-[#141414]/90 backdrop-blur-md border-t border-white/5 p-6 flex justify-between items-center z-50">
-            <div>
-              <p className="text-[8px] opacity-40 uppercase font-black">Total Stakes</p>
-              <p className="text-lg font-mono font-black">${players.reduce((s, p) => s + (p.buyIn || 0), 0)}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[8px] opacity-40 uppercase font-black">Current Liquidity</p>
-              <p className="text-lg font-mono font-black text-[#c4a14c]">${players.reduce((s, p) => s + (p.endChips || 0), 0) + housePool}</p>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // Render the app
-    const root = createRoot(document.getElementById('root'));
-    root.render(<App />);
-  </script>
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<CardsAndSmoke />);
+    </script>
 </body>
 </html>
